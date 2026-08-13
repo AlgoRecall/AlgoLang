@@ -15,7 +15,7 @@
 <!-- List the commands or manual checks you ran. -->
 
 ```text
-python3 -m unittest discover -s tests -v
+make test
 ```
 
 ## Language impact

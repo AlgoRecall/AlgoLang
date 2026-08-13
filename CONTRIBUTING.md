@@ -16,35 +16,33 @@ easier to test, discuss, and merge.
 
 ## Set up the project
 
-AlgoLang requires Python 3.11 or newer and has no runtime dependencies.
+AlgoLang requires Python 3.11 or newer, `pipx`, and Make. It has no runtime
+dependencies. Install the CLI in an isolated, editable environment so changes
+in the checkout are immediately available to the `algo` command:
 
 ```sh
 git clone <your-fork-url>
 cd AlgoLang
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -e .
-python3 -m unittest discover -s tests -v
-```
-
-On Windows PowerShell, activate the environment with:
-
-```powershell
-.venv\Scripts\Activate.ps1
+make setup
+make test
 ```
 
 Run an example to confirm the interpreter works:
 
 ```sh
-python3 -m algolang run examples/binary_search.algo
+make run EXAMPLE=examples/binary_search.algo
 ```
+
+`make setup` runs `pipx install --editable . --force` and enables the Git hooks.
+Use `make help` for all available commands. Contributors without Make can run
+the commands shown by the relevant Makefile targets directly.
 
 ### Enable the Git hooks
 
 Enable AlgoLang's version-controlled Git hooks once after cloning:
 
 ```sh
-./scripts/setup-git-hooks.sh
+make hooks
 ```
 
 The `pre-commit` hook checks the current branch name, and the `commit-msg` hook
@@ -174,15 +172,15 @@ title and its final commits must still follow the project standards.
 Run the full test suite before pushing:
 
 ```sh
-python3 -m unittest discover -s tests -v
+make test
 ```
 
 You can also exercise the parts relevant to your change:
 
 ```sh
-python3 -m algolang check examples/dijkstra.algo
-python3 -m algolang ast examples/arithmetic.algo
-python3 -m algolang dryrun examples/bfs.algo --watch node,pending,order
+make check EXAMPLE=examples/dijkstra.algo
+make ast EXAMPLE=examples/arithmetic.algo
+make dryrun EXAMPLE=examples/bfs.algo WATCH=node,pending,order
 ```
 
 ## Pull/merge request standard

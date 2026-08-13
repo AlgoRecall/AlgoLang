@@ -69,11 +69,11 @@ diagnostics to show the filename, line, column, and offending source line.
 Run the focused tests while working on the lexer:
 
 ```sh
-python3 -m unittest discover -s tests/lexer -v
+make test-lexer
 ```
 
 Before opening a pull request, run the complete suite:
 
 ```sh
-python3 -m unittest discover -s tests -v
+make test
 ```
