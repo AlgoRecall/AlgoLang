@@ -65,3 +65,10 @@ Run or inspect any example:
 python3 -m algolang run examples/dijkstra.algo
 python3 -m algolang dryrun examples/bfs.algo --watch node,pending,order
 ```
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for project
+setup, branch naming, Conventional Commits, testing expectations, and the
+pull/merge request standard. Run `./scripts/setup-git-hooks.sh` once after
+cloning to enable the branch-name and commit-message checks.
