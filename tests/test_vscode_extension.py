@@ -45,6 +45,7 @@ class VsCodeExtensionTests(unittest.TestCase):
     def test_contributed_files_exist(self):
         manifest = self.load_json("package.json")
         paths = [manifest["main"]]
+        paths.append("./completions.js")
         paths.extend(language["configuration"] for language in manifest["contributes"]["languages"])
         paths.extend(grammar["path"] for grammar in manifest["contributes"]["grammars"])
         paths.extend(snippet["path"] for snippet in manifest["contributes"]["snippets"])
@@ -62,8 +63,37 @@ class VsCodeExtensionTests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("node"), "Node.js is not installed")
     def test_extension_javascript_syntax(self):
+        for filename in ("extension.js", "completions.js"):
+            with self.subTest(filename=filename):
+                result = subprocess.run(
+                    ["node", "--check", str(EXTENSION / filename)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js is not installed")
+    def test_autocomplete_includes_language_and_document_suggestions(self):
+        script = """
+const assert = require('assert');
+const { getCompletions } = require('./completions');
+const source = `fn search(values: [int], target: int) -> int {
+  result = 0
+  for index, value in values {
+    result = index
+  }
+  return result
+}`;
+const completions = getCompletions(source);
+const labels = new Set(completions.map((item) => item.label));
+for (const label of ['if', 'int', 'map<K, V>', 'len', 'range', 'search', 'values', 'target', 'result', 'index', 'value']) {
+  assert(labels.has(label), `missing completion: ${label}`);
+}
+"""
         result = subprocess.run(
-            ["node", "--check", str(EXTENSION / "extension.js")],
+            ["node", "-e", script],
+            cwd=EXTENSION,
             capture_output=True,
             text=True,
             check=False,

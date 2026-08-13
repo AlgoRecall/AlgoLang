@@ -30,3 +30,4 @@ graph = [
     [0, 0, 1, 0, 1, 0]
 ]
 print(bfs(graph, 0))
+

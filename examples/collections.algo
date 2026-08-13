@@ -1,9 +1,7 @@
-heap = minheap<int>()
+heap1 = maxheap<int>()
 for value in [8, 3, 5, 1] {
-    heap.push(value)
+    heap1.push(value)
 }
-
-while len(heap) > 0 {
-    print(heap.pop())
+while len(heap1) > 0 {
+    print(heap1.pop())
 }
-

@@ -140,6 +140,11 @@
           "default": "",
           "description": "Directory containing the algolang Python package. Empty uses the current workspace folder."
         },
+        "algolang.autocomplete.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Suggest AlgoLang keywords, types, built-ins, and identifiers from the current file."
+        },
         "algolang.clearOutputBeforeRun": {
           "type": "boolean",
           "default": true,
@@ -159,6 +164,6 @@
     }
   },
   "scripts": {
-    "check": "node --check extension.js"
+    "check": "node --check extension.js && node --check completions.js"
   }
 }
