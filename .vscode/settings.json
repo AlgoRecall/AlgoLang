@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "*.algo": "algolang"
+  },
+  "algolang.runtimeDirectory": "${workspaceFolder}"
+}
+

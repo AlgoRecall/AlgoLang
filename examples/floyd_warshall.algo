@@ -1,0 +1,29 @@
+// All-pairs shortest paths using dynamic programming over intermediate nodes.
+fn floydWarshall(graph: [[int]], infinity: int) -> [[int]] {
+    distance = graph
+    nodeCount = len(distance)
+
+    for middle in range(nodeCount) {
+        for source in range(nodeCount) {
+            for target in range(nodeCount) {
+                if distance[source][middle] < infinity and distance[middle][target] < infinity {
+                    throughMiddle = distance[source][middle] + distance[middle][target]
+                    if throughMiddle < distance[source][target] {
+                        distance[source][target] = throughMiddle
+                    }
+                }
+            }
+        }
+    }
+    return distance
+}
+
+infinity = 99999
+graph = [
+    [0, 5, infinity, 10],
+    [infinity, 0, 3, infinity],
+    [infinity, infinity, 0, 1],
+    [infinity, infinity, infinity, 0]
+]
+print(floydWarshall(graph, infinity))
+

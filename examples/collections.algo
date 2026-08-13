@@ -1,0 +1,9 @@
+heap = minheap<int>()
+for value in [8, 3, 5, 1] {
+    heap.push(value)
+}
+
+while len(heap) > 0 {
+    print(heap.pop())
+}
+

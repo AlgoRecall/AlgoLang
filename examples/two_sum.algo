@@ -1,0 +1,14 @@
+fn twoSum(nums: [int], target: int) -> [int] {
+    seen = map<int, int>()
+    for i, num in nums {
+        complement = target - num
+        if complement in seen {
+            return [seen[complement], i]
+        }
+        seen[num] = i
+    }
+    return []
+}
+
+print(twoSum([2, 7, 11, 15], 9))
+

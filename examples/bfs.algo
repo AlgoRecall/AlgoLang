@@ -1,0 +1,32 @@
+// Breadth-first search over an adjacency matrix.
+fn bfs(graph: [[int]], start: int) -> [int] {
+    visited = set<int>()
+    pending = queue<int>()
+    order: [int] = []
+
+    visited.add(start)
+    pending.enqueue(start)
+
+    while len(pending) > 0 {
+        node = pending.dequeue()
+        order.push(node)
+
+        for neighbor, connected in graph[node] {
+            if connected == 1 and not (neighbor in visited) {
+                visited.add(neighbor)
+                pending.enqueue(neighbor)
+            }
+        }
+    }
+    return order
+}
+
+graph = [
+    [0, 1, 1, 0, 0, 0],
+    [1, 0, 0, 1, 1, 0],
+    [1, 0, 0, 0, 0, 1],
+    [0, 1, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 1],
+    [0, 0, 1, 0, 1, 0]
+]
+print(bfs(graph, 0))

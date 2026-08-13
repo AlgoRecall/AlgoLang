@@ -1,0 +1,43 @@
+// Dijkstra on a non-negative weighted adjacency matrix.
+// A zero entry means there is no edge. Heap entries are [distance, node].
+fn dijkstra(graph: [[int]], source: int) -> [int] {
+    nodeCount = len(graph)
+    infinity = 999999
+    distances: [int] = []
+    for node in range(nodeCount) {
+        distances.push(infinity)
+    }
+    distances[source] = 0
+
+    frontier = minheap<[int]>()
+    frontier.push([0, source])
+
+    while len(frontier) > 0 {
+        entry = frontier.pop()
+        distance = entry[0]
+        node = entry[1]
+
+        if distance == distances[node] {
+            for neighbor, weight in graph[node] {
+                if weight > 0 {
+                    candidate = distance + weight
+                    if candidate < distances[neighbor] {
+                        distances[neighbor] = candidate
+                        frontier.push([candidate, neighbor])
+                    }
+                }
+            }
+        }
+    }
+    return distances
+}
+
+graph = [
+    [0, 4, 1, 0, 0],
+    [4, 0, 2, 1, 0],
+    [1, 2, 0, 5, 0],
+    [0, 1, 5, 0, 3],
+    [0, 0, 0, 3, 0]
+]
+print(dijkstra(graph, 0))
+

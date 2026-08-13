@@ -1,0 +1,18 @@
+// Priority queues order scalar values or comparable arrays lexicographically.
+minValues = minheap<int>()
+maxValues = maxheap<int>()
+
+for value in [7, 2, 9, 4] {
+    minValues.push(value)
+    maxValues.push(value)
+}
+
+print(minValues.pop())
+print(maxValues.pop())
+
+tasks = minheap<[int]>()
+tasks.push([3, 100])
+tasks.push([1, 200])
+tasks.push([1, 150])
+print(tasks.pop())
+

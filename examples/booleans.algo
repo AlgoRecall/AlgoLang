@@ -1,0 +1,4 @@
+age = 20
+eligible = age >= 18 and not false
+print(eligible)
+

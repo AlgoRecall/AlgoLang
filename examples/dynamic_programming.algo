@@ -1,0 +1,27 @@
+// Minimum coins needed to make an amount (bottom-up dynamic programming).
+fn coinChange(coins: [int], amount: int) -> int {
+    dp: [int] = []
+    for value in range(amount + 1) {
+        dp.push(amount + 1)
+    }
+    dp[0] = 0
+
+    for current in range(1, amount + 1) {
+        for coin in coins {
+            if coin <= current {
+                candidate = dp[current - coin] + 1
+                if candidate < dp[current] {
+                    dp[current] = candidate
+                }
+            }
+        }
+    }
+
+    if dp[amount] == amount + 1 {
+        return -1
+    }
+    return dp[amount]
+}
+
+print(coinChange([1, 3, 4], 6))
+
