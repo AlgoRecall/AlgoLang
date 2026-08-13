@@ -7,6 +7,8 @@ Lightweight editing and execution support for `.algo` files.
 - AlgoLang syntax highlighting
 - Comment toggling, bracket matching, auto-closing, indentation, and folding
 - Snippets for functions, conditions, and loops
+- Autocomplete for keywords, types, collections, built-ins, and identifiers or
+  functions declared in the current file
 - **Run** and **Dry Run** buttons in the editor title bar
 - **Run**, **Check**, **Show AST**, and **Dry Run** commands in the Command Palette
 - Compiler/type/runtime errors in VS Code's Problems collection
@@ -39,6 +41,8 @@ With an `.algo` file active:
 - `algolang.pythonPath`: Python executable, default `python3`.
 - `algolang.runtimeDirectory`: folder containing the `algolang` Python package;
   empty means the current workspace folder.
+- `algolang.autocomplete.enabled`: enable autocomplete suggestions; defaults to
+  `true`.
 - `algolang.clearOutputBeforeRun`: clear output before commands.
 - `algolang.revealOutput`: `always`, `onError`, or `never`.
 
@@ -56,4 +60,3 @@ npx @vscode/vsce package
 ```
 
 Then select **Extensions: Install from VSIX...** in VS Code.
-

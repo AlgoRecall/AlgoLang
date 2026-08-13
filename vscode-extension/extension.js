@@ -2,6 +2,7 @@ const path = require("path");
 const os = require("os");
 const { spawn } = require("child_process");
 const vscode = require("vscode");
+const { getCompletions } = require("./completions");
 
 const COMMANDS = {
   run: "algolang.run",
@@ -26,11 +27,28 @@ function activate(context) {
     vscode.commands.registerCommand(COMMANDS.check, (resource) => execute("check", resource)),
     vscode.commands.registerCommand(COMMANDS.ast, (resource) => execute("ast", resource)),
     vscode.commands.registerCommand(COMMANDS.dryrun, (resource) => executeDryRun(resource)),
+    vscode.languages.registerCompletionItemProvider("algolang", {
+      provideCompletionItems(document) {
+        const configuration = vscode.workspace.getConfiguration("algolang", document.uri);
+        if (!configuration.get("autocomplete.enabled", true)) return [];
+        return getCompletions(document.getText()).map(toCompletionItem);
+      },
+    }),
     vscode.workspace.onDidCloseTextDocument((document) => diagnostics.delete(document.uri)),
   );
 }
 
 function deactivate() {}
+
+function toCompletionItem(suggestion) {
+  const kind = vscode.CompletionItemKind[suggestion.kind] ?? vscode.CompletionItemKind.Text;
+  const item = new vscode.CompletionItem(suggestion.label, kind);
+  item.detail = suggestion.detail;
+  if (suggestion.insertText) {
+    item.insertText = new vscode.SnippetString(suggestion.insertText);
+  }
+  return item;
+}
 
 async function executeDryRun(resource) {
   const watches = await vscode.window.showInputBox({
@@ -190,4 +208,3 @@ function formatCommand(program, arguments) {
 }
 
 module.exports = { activate, deactivate };
-
