@@ -13,17 +13,27 @@ result = x + y * 2
 print(result)
 ```
 
-Run directly from the checkout:
+AlgoLang requires Python 3.11 or newer, `pipx`, and Make. Set up an editable
+installation, enable the Git hooks, run the tests, and try an example:
 
 ```sh
-python -m algolang run examples/arithmetic.algo
-python -m algolang ast examples/arithmetic.algo
-python -m algolang check examples/arithmetic.algo
-python -m algolang dryrun examples/binary_search.algo --watch left,right,mid
-python3 -m unittest discover -s tests -v
+make setup
+make test
+make run
 ```
 
-Install with `pip install -e .` to make the equivalent `algo` command available.
+The setup target uses `pipx install --editable .` to expose the `algo` command
+from an isolated environment while keeping source changes immediately visible.
+Run `make help` to see the available development commands.
+
+Examples of common commands:
+
+```sh
+make ast EXAMPLE=examples/arithmetic.algo
+make check EXAMPLE=examples/dijkstra.algo
+make dryrun EXAMPLE=examples/binary_search.algo WATCH=left,right,mid
+```
+
 See [docs/language-design.md](docs/language-design.md) for syntax, semantics,
 architecture, and deliberate limitations.
 
@@ -62,13 +72,13 @@ for settings and VSIX packaging instructions.
 Run or inspect any example:
 
 ```sh
-python3 -m algolang run examples/dijkstra.algo
-python3 -m algolang dryrun examples/bfs.algo --watch node,pending,order
+make run EXAMPLE=examples/dijkstra.algo
+make dryrun EXAMPLE=examples/bfs.algo WATCH=node,pending,order
 ```
 
 ## Contributing
 
 Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for project
 setup, branch naming, Conventional Commits, testing expectations, and the
-pull/merge request standard. Run `./scripts/setup-git-hooks.sh` once after
-cloning to enable the branch-name and commit-message checks.
+pull/merge request standard. Run `make setup` once after cloning to install the
+editable CLI and enable the branch-name and commit-message checks.
