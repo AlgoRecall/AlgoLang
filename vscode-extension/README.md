@@ -52,11 +52,15 @@ this repository.
 
 ## Packaging
 
-With Microsoft's VS Code Extension Manager installed:
+From the repository root, validate and package the extension:
 
 ```sh
-cd vscode-extension
-npx @vscode/vsce package
+make build-extension
 ```
+
+The resulting package is written to `build/algolang.vsix`. The target validates
+the extension JavaScript before using Microsoft's VS Code Extension Manager to
+create the VSIX. Override the output when needed with
+`EXTENSION_OUTPUT=build/another-name.vsix`.
 
 Then select **Extensions: Install from VSIX...** in VS Code.
