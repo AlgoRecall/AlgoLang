@@ -12,15 +12,30 @@ from .types import (
 
 class TypeChecker:
     """Infer and validate types throughout an AlgoLang program."""
+
     def __init__(self, source: str):
-        """Initialize the type checker."""
+        """Initialize the type checker.
+
+        Args:
+            source (str): AlgoLang source text.
+
+        Returns:
+            None: No value is returned.
+        """
         self.source = source
         self.globals = SymbolTable()
         self.scope = self.globals
         self.current_return: Type | None = None
 
     def check(self, program: ast.Program) -> SymbolTable:
-        """Type-check a complete program and return it unchanged on success."""
+        """Type-check a complete program and return it unchanged on success.
+
+        Args:
+            program (ast.Program): Program node to validate or execute.
+
+        Returns:
+            SymbolTable: The symbol table that owns the binding, or ``None`` if absent.
+        """
         for statement in program.statements:
             if isinstance(statement, ast.FunctionDeclaration):
                 signature = FunctionType(
@@ -35,11 +50,25 @@ class TypeChecker:
         return self.globals
 
     def visit_program(self, node: ast.Program) -> None:
-        """Infer or validate the type of the program node."""
+        """Infer or validate the type of the program node.
+
+        Args:
+            node (ast.Program): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         pass
 
     def visit_block_statement(self, node: ast.BlockStatement) -> None:
-        """Infer or validate the type of the block statement node."""
+        """Infer or validate the type of the block statement node.
+
+        Args:
+            node (ast.BlockStatement): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         self._begin_scope()
         try:
             for statement in node.statements: statement.accept(self)
@@ -47,7 +76,14 @@ class TypeChecker:
             self._end_scope()
 
     def visit_function_declaration(self, node: ast.FunctionDeclaration) -> None:
-        """Infer or validate the type of the function declaration node."""
+        """Infer or validate the type of the function declaration node.
+
+        Args:
+            node (ast.FunctionDeclaration): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         signature = self.globals.resolve(node.name)
         assert isinstance(signature, FunctionType)
         previous_return = self.current_return
@@ -65,7 +101,14 @@ class TypeChecker:
             self.current_return = previous_return
 
     def visit_assignment_statement(self, node: ast.AssignmentStatement) -> None:
-        """Infer or validate the type of the assignment statement node."""
+        """Infer or validate the type of the assignment statement node.
+
+        Args:
+            node (ast.AssignmentStatement): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         value_type = self._expr(node.value)
         if isinstance(node.target, ast.Identifier):
             name = node.target.name
@@ -81,7 +124,8 @@ class TypeChecker:
             owner = self.scope.resolve_owner(name)
             if owner is None:
                 if self._contains_unknown(value_type):
-                    self._error(node.value, "cannot infer the element type of an empty array; add an explicit annotation")
+                    self._error(node.value,
+                                "cannot infer the element type of an empty array; add an explicit annotation")
                 self.scope.define(name, value_type)
             else:
                 expected = owner.symbols[name]
@@ -97,25 +141,61 @@ class TypeChecker:
             self._require_assignable(expected, value_type, node.value)
 
     def visit_expression_statement(self, node: ast.ExpressionStatement) -> None:
-        """Infer or validate the type of the expression statement node."""
+        """Infer or validate the type of the expression statement node.
+
+        Args:
+            node (ast.ExpressionStatement): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         self._expr(node.expression)
+
     def visit_print_statement(self, node: ast.PrintStatement) -> None:
-        """Infer or validate the type of the print statement node."""
+        """Infer or validate the type of the print statement node.
+
+        Args:
+            node (ast.PrintStatement): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         self._expr(node.expression)
 
     def visit_if_statement(self, node: ast.IfStatement) -> None:
-        """Infer or validate the type of the if statement node."""
+        """Infer or validate the type of the if statement node.
+
+        Args:
+            node (ast.IfStatement): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         self._require_exact(BOOL, self._expr(node.condition), node.condition, "if condition")
         node.then_branch.accept(self)
         if node.else_branch: node.else_branch.accept(self)
 
     def visit_while_statement(self, node: ast.WhileStatement) -> None:
-        """Infer or validate the type of the while statement node."""
+        """Infer or validate the type of the while statement node.
+
+        Args:
+            node (ast.WhileStatement): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         self._require_exact(BOOL, self._expr(node.condition), node.condition, "while condition")
         node.body.accept(self)
 
     def visit_for_statement(self, node: ast.ForStatement) -> None:
-        """Infer or validate the type of the for statement node."""
+        """Infer or validate the type of the for statement node.
+
+        Args:
+            node (ast.ForStatement): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         iterable = self._expr(node.iterable)
         item = self._iterable_item(iterable, node.iterable)
         self._begin_scope()
@@ -130,36 +210,104 @@ class TypeChecker:
             self._end_scope()
 
     def visit_break_statement(self, node: ast.BreakStatement) -> None:
-        """Infer or validate the type of the break statement node."""
+        """Infer or validate the type of the break statement node.
+
+        Args:
+            node (ast.BreakStatement): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         pass
+
     def visit_continue_statement(self, node: ast.ContinueStatement) -> None:
-        """Infer or validate the type of the continue statement node."""
+        """Infer or validate the type of the continue statement node.
+
+        Args:
+            node (ast.ContinueStatement): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         pass
 
     def visit_return_statement(self, node: ast.ReturnStatement) -> None:
-        """Infer or validate the type of the return statement node."""
+        """Infer or validate the type of the return statement node.
+
+        Args:
+            node (ast.ReturnStatement): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         assert self.current_return is not None
         actual = NULL if node.value is None else self._expr(node.value)
         self._require_assignable(self.current_return, actual, node.value or node)
 
     def visit_integer_literal(self, node: ast.IntegerLiteral) -> Type:
-        """Infer or validate the type of the integer literal node."""
+        """Infer or validate the type of the integer literal node.
+
+        Args:
+            node (ast.IntegerLiteral): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         return INT
+
     def visit_float_literal(self, node: ast.FloatLiteral) -> Type:
-        """Infer or validate the type of the float literal node."""
+        """Infer or validate the type of the float literal node.
+
+        Args:
+            node (ast.FloatLiteral): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         return FLOAT
+
     def visit_boolean_literal(self, node: ast.BooleanLiteral) -> Type:
-        """Infer or validate the type of the boolean literal node."""
+        """Infer or validate the type of the boolean literal node.
+
+        Args:
+            node (ast.BooleanLiteral): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         return BOOL
+
     def visit_string_literal(self, node: ast.StringLiteral) -> Type:
-        """Infer or validate the type of the string literal node."""
+        """Infer or validate the type of the string literal node.
+
+        Args:
+            node (ast.StringLiteral): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         return STRING
+
     def visit_null_literal(self, node: ast.NullLiteral) -> Type:
-        """Infer or validate the type of the null literal node."""
+        """Infer or validate the type of the null literal node.
+
+        Args:
+            node (ast.NullLiteral): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         return NULL
 
     def visit_identifier(self, node: ast.Identifier) -> Type | FunctionType:
-        """Infer or validate the type of the identifier node."""
+        """Infer or validate the type of the identifier node.
+
+        Args:
+            node (ast.Identifier): Abstract syntax tree node to process.
+
+        Returns:
+            Type | FunctionType: The resolved or inferred static type.
+        """
         if node.name == "len": return FunctionType((UNKNOWN,), INT)
         if node.name == "range": return FunctionType((INT,), Type("array", (INT,)))
         found = self.scope.resolve(node.name)
@@ -167,18 +315,39 @@ class TypeChecker:
         return found
 
     def visit_array_literal(self, node: ast.ArrayLiteral) -> Type:
-        """Infer or validate the type of the array literal node."""
+        """Infer or validate the type of the array literal node.
+
+        Args:
+            node (ast.ArrayLiteral): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         element = UNKNOWN
         for expression in node.elements:
             element = self._merge(element, self._expr(expression), expression)
         return Type("array", (element,))
 
     def visit_grouping_expression(self, node: ast.GroupingExpression) -> Type | FunctionType:
-        """Infer or validate the type of the grouping expression node."""
+        """Infer or validate the type of the grouping expression node.
+
+        Args:
+            node (ast.GroupingExpression): Abstract syntax tree node to process.
+
+        Returns:
+            Type | FunctionType: The resolved or inferred static type.
+        """
         return node.expression.accept(self)
 
     def visit_unary_expression(self, node: ast.UnaryExpression) -> Type:
-        """Infer or validate the type of the unary expression node."""
+        """Infer or validate the type of the unary expression node.
+
+        Args:
+            node (ast.UnaryExpression): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         operand = self._expr(node.operand)
         if node.operator == "not":
             self._require_exact(BOOL, operand, node.operand, "operand of 'not'")
@@ -187,7 +356,14 @@ class TypeChecker:
         return operand
 
     def visit_binary_expression(self, node: ast.BinaryExpression) -> Type:
-        """Infer or validate the type of the binary expression node."""
+        """Infer or validate the type of the binary expression node.
+
+        Args:
+            node (ast.BinaryExpression): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         left = self._expr(node.left)
         if node.operator in ("and", "or"):
             right = self._expr(node.right)
@@ -213,7 +389,14 @@ class TypeChecker:
         self._error(node, f"unknown operator '{node.operator}'")
 
     def visit_call_expression(self, node: ast.CallExpression) -> Type:
-        """Infer or validate the type of the call expression node."""
+        """Infer or validate the type of the call expression node.
+
+        Args:
+            node (ast.CallExpression): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         if isinstance(node.callee, ast.Identifier) and node.callee.name == "len":
             if len(node.arguments) != 1: self._error(node, "len expects exactly one argument")
             value = self._expr(node.arguments[0])
@@ -233,20 +416,38 @@ class TypeChecker:
         return callee.result
 
     def visit_index_expression(self, node: ast.IndexExpression) -> Type:
-        """Infer or validate the type of the index expression node."""
+        """Infer or validate the type of the index expression node.
+
+        Args:
+            node (ast.IndexExpression): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         return self._index_result(self._expr(node.collection), self._expr(node.index), node)
 
     def visit_member_expression(self, node: ast.MemberExpression) -> FunctionType:
-        """Infer or validate the type of the member expression node."""
+        """Infer or validate the type of the member expression node.
+
+        Args:
+            node (ast.MemberExpression): Abstract syntax tree node to process.
+
+        Returns:
+            FunctionType: The resolved or inferred static type.
+        """
         owner = self._expr(node.object)
         element = owner.arguments[-1] if owner.arguments else UNKNOWN
         methods: dict[str, FunctionType] = {}
-        if owner.name == "array": methods = {"push": FunctionType((element,), NULL), "pop": FunctionType((), element)}
-        elif owner.name == "set": methods = {"add": FunctionType((element,), NULL), "remove": FunctionType((element,), BOOL)}
+        if owner.name == "array":
+            methods = {"push": FunctionType((element,), NULL), "pop": FunctionType((), element)}
+        elif owner.name == "set":
+            methods = {"add": FunctionType((element,), NULL), "remove": FunctionType((element,), BOOL)}
         elif owner.name in ("stack", "minheap", "maxheap"):
-            methods = {"push": FunctionType((element,), NULL), "pop": FunctionType((), element), "peek": FunctionType((), element)}
+            methods = {"push": FunctionType((element,), NULL), "pop": FunctionType((), element),
+                       "peek": FunctionType((), element)}
         elif owner.name == "queue":
-            methods = {"enqueue": FunctionType((element,), NULL), "dequeue": FunctionType((), element), "front": FunctionType((), element)}
+            methods = {"enqueue": FunctionType((element,), NULL), "dequeue": FunctionType((), element),
+                       "front": FunctionType((), element)}
         elif owner.name == "deque":
             methods = {
                 "push_front": FunctionType((element,), NULL), "push_back": FunctionType((element,), NULL),
@@ -259,7 +460,14 @@ class TypeChecker:
         return methods[node.name]
 
     def visit_collection_constructor(self, node: ast.CollectionConstructor) -> Type:
-        """Infer or validate the type of the collection constructor node."""
+        """Infer or validate the type of the collection constructor node.
+
+        Args:
+            node (ast.CollectionConstructor): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         type_ = self._resolve_type(node.type_node)
         if type_.name == "map" and type_.arguments[0].name not in PRIMITIVES:
             self._error(node, f"map keys must be primitive, got {type_.arguments[0]}")
@@ -271,7 +479,14 @@ class TypeChecker:
         return type_
 
     def _resolve_type(self, node: ast.TypeNode) -> Type:
-        """Resolve and validate an AST type annotation."""
+        """Resolve and validate an AST type annotation.
+
+        Args:
+            node (ast.TypeNode): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         if node.name in PRIMITIVES:
             if node.arguments: self._error(node, f"primitive type '{node.name}' takes no arguments")
             return PRIMITIVES[node.name]
@@ -282,7 +497,16 @@ class TypeChecker:
         return Type(node.name, tuple(self._resolve_type(argument) for argument in node.arguments))
 
     def _index_result(self, collection: Type, index: Type, node: ast.Node) -> Type:
-        """Return the value type produced by indexing a collection."""
+        """Return the value type produced by indexing a collection.
+
+        Args:
+            collection (Type): Collection value to inspect or mutate.
+            index (Type): Event or collection position to process.
+            node (ast.Node): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         if collection.name == "array":
             self._require_exact(INT, index, node, "array index")
             return collection.arguments[0]
@@ -295,41 +519,94 @@ class TypeChecker:
         self._error(node, f"type {collection} is not indexable")
 
     def _iterable_item(self, type_: Type, node: ast.Node) -> Type:
-        """Return the item type yielded by an iterable collection."""
+        """Return the item type yielded by an iterable collection.
+
+        Args:
+            type_ (Type): Static type associated with the binding or value.
+            node (ast.Node): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         if type_.name in ("array", "set", "stack", "queue", "deque", "minheap", "maxheap"): return type_.arguments[0]
         if type_.name == "map": return type_.arguments[0]
         if type_ == STRING: return STRING
         self._error(node, f"type {type_} is not iterable")
 
     def _membership_item(self, type_: Type, node: ast.Node) -> Type:
-        """Return the type accepted by a collection membership test."""
+        """Return the type accepted by a collection membership test.
+
+        Args:
+            type_ (Type): Static type associated with the binding or value.
+            node (ast.Node): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         if type_.name in ("array", "set", "stack", "queue", "deque", "minheap", "maxheap"): return type_.arguments[0]
         if type_.name == "map": return type_.arguments[0]
         if type_ == STRING: return STRING
         self._error(node, f"operator 'in' does not support {type_}")
 
     def _expr(self, node: ast.Expression) -> Type:
-        """Infer an expression type and reject statement-only nodes."""
+        """Infer an expression type and reject statement-only nodes.
+
+        Args:
+            node (ast.Expression): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         result = node.accept(self)
         if isinstance(result, FunctionType): self._error(node, "function value cannot be used here")
         return result
 
     @staticmethod
     def _numeric(type_: Type) -> bool:
-        """Return the numeric type shared by two operands."""
+        """Return the numeric type shared by two operands.
+
+        Args:
+            type_ (Type): Static type associated with the binding or value.
+
+        Returns:
+            bool: Whether the requested condition is satisfied.
+        """
         return type_ in (INT, FLOAT)
 
     def _heap_comparable(self, type_: Type) -> bool:
-        """Return whether a type can be ordered inside a heap."""
+        """Return whether a type can be ordered inside a heap.
+
+        Args:
+            type_ (Type): Static type associated with the binding or value.
+
+        Returns:
+            bool: Whether the requested condition is satisfied.
+        """
         if type_ in (INT, FLOAT, STRING): return True
         return type_.name == "array" and self._heap_comparable(type_.arguments[0])
 
     def _contains_unknown(self, type_: Type) -> bool:
-        """Return whether a type contains an unresolved unknown component."""
+        """Return whether a type contains an unresolved unknown component.
+
+        Args:
+            type_ (Type): Static type associated with the binding or value.
+
+        Returns:
+            bool: Whether the requested condition is satisfied.
+        """
         return type_ == UNKNOWN or any(self._contains_unknown(argument) for argument in type_.arguments)
 
     def _merge(self, left: Type, right: Type, node: ast.Node) -> Type:
-        """Merge two compatible inferred types into their common type."""
+        """Merge two compatible inferred types into their common type.
+
+        Args:
+            left (Type): Left operand or type participating in the operation.
+            right (Type): Right operand or type participating in the operation.
+            node (ast.Node): Abstract syntax tree node to process.
+
+        Returns:
+            Type: The resolved or inferred static type.
+        """
         if left == UNKNOWN: return right
         if right == UNKNOWN: return left
         if self._numeric(left) and self._numeric(right): return FLOAT if FLOAT in (left, right) else INT
@@ -337,7 +614,16 @@ class TypeChecker:
         self._error(node, f"array elements must have one type, found {left} and {right}")
 
     def _require_assignable(self, expected: Type, actual: Type, node: ast.Node) -> None:
-        """Require an actual type to be assignable to an expected type."""
+        """Require an actual type to be assignable to an expected type.
+
+        Args:
+            expected (Type): Expected character or value.
+            actual (Type): Actual type inferred for the supplied value.
+            node (ast.Node): Abstract syntax tree node to process.
+
+        Returns:
+            None: No value is returned.
+        """
         if expected == UNKNOWN or actual == UNKNOWN: return
         if expected == FLOAT and actual == INT: return
         if expected.name == actual.name and len(expected.arguments) == len(actual.arguments):
@@ -346,32 +632,79 @@ class TypeChecker:
         self._error(node, f"expected {expected}, got {actual}")
 
     def _assignable(self, expected: Type, actual: Type) -> bool:
-        """Return whether an actual type may be assigned to an expected type."""
+        """Return whether an actual type may be assigned to an expected type.
+
+        Args:
+            expected (Type): Expected character or value.
+            actual (Type): Actual type inferred for the supplied value.
+
+        Returns:
+            bool: Whether the requested condition is satisfied.
+        """
         if UNKNOWN in (expected, actual) or expected == actual or (expected == FLOAT and actual == INT): return True
         return expected.name == actual.name and len(expected.arguments) == len(actual.arguments) and all(
             self._assignable(e, a) for e, a in zip(expected.arguments, actual.arguments)
         )
 
     def _require_exact(self, expected: Type, actual: Type, node: ast.Node, context: str) -> None:
-        """Require two types to match exactly."""
+        """Require two types to match exactly.
+
+        Args:
+            expected (Type): Expected character or value.
+            actual (Type): Actual type inferred for the supplied value.
+            node (ast.Node): Abstract syntax tree node to process.
+            context (str): Execution context associated with the operation.
+
+        Returns:
+            None: No value is returned.
+        """
         if actual != expected: self._error(node, f"{context} must be {expected}, got {actual}")
 
     def _begin_scope(self) -> None:
-        """Push a new lexical type scope."""
+        """Push a new lexical type scope.
+
+        Returns:
+            None: No value is returned.
+        """
         self.scope = SymbolTable(self.scope)
+
     def _end_scope(self) -> None:
-        """Pop the current lexical type scope."""
+        """Pop the current lexical type scope.
+
+        Returns:
+            None: No value is returned.
+        """
         assert self.scope.enclosing is not None
         self.scope = self.scope.enclosing
 
     def _definitely_returns(self, statement: ast.Statement) -> bool:
-        """Return whether every path through a statement returns a value."""
+        """Return whether every path through a statement returns a value.
+
+        Args:
+            statement (ast.Statement): Statement node to inspect.
+
+        Returns:
+            bool: Whether the requested condition is satisfied.
+        """
         if isinstance(statement, ast.ReturnStatement): return True
-        if isinstance(statement, ast.BlockStatement): return any(self._definitely_returns(s) for s in statement.statements)
+        if isinstance(statement, ast.BlockStatement): return any(
+            self._definitely_returns(s) for s in statement.statements)
         if isinstance(statement, ast.IfStatement):
-            return statement.else_branch is not None and self._definitely_returns(statement.then_branch) and self._definitely_returns(statement.else_branch)
+            return statement.else_branch is not None and self._definitely_returns(
+                statement.then_branch) and self._definitely_returns(statement.else_branch)
         return False
 
     def _error(self, node: ast.Node, message: str):
-        """Raise a source-aware type error for an AST node."""
+        """Raise a source-aware type error for an AST node.
+
+        Args:
+            node (ast.Node): Abstract syntax tree node to process.
+            message (str): Diagnostic message presented to the user.
+
+        Returns:
+            None: No value is returned.
+
+        Raises:
+            TypeCheckError: When the operation cannot complete successfully.
+        """
         raise TypeCheckError(message, node.span, self.source)

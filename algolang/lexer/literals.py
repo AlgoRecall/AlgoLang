@@ -8,7 +8,14 @@ from .vocabulary import KEYWORDS, STRING_ESCAPES
 
 
 def scan_string(cursor: SourceCursor) -> str:
-    """Read a quoted string after its opening quote has been consumed."""
+    """Read a quoted string after its opening quote has been consumed.
+
+    Args:
+        cursor (SourceCursor): Source cursor positioned after the literal's first character.
+
+    Returns:
+        str: The resulting text.
+    """
 
     value: list[str] = []
     while not cursor.at_end() and cursor.peek() != '"':
@@ -33,7 +40,14 @@ def scan_string(cursor: SourceCursor) -> str:
 
 
 def scan_number(cursor: SourceCursor) -> tuple[TokenKind, int | float]:
-    """Read an integer or a float after its first digit has been consumed."""
+    """Read an integer or a float after its first digit has been consumed.
+
+    Args:
+        cursor (SourceCursor): Source cursor positioned after the literal's first character.
+
+    Returns:
+        tuple[TokenKind, int | float]: The resulting collection.
+    """
 
     while cursor.peek().isdigit():
         cursor.advance()
@@ -51,7 +65,14 @@ def scan_number(cursor: SourceCursor) -> tuple[TokenKind, int | float]:
 
 
 def scan_identifier(cursor: SourceCursor) -> TokenKind:
-    """Read an identifier and classify reserved words as keyword tokens."""
+    """Read an identifier and classify reserved words as keyword tokens.
+
+    Args:
+        cursor (SourceCursor): Source cursor positioned after the literal's first character.
+
+    Returns:
+        TokenKind: The consumed, inspected, or generated token value.
+    """
 
     while cursor.peek().isalnum() or cursor.peek() == "_":
         cursor.advance()

@@ -18,11 +18,27 @@ class Environment:
     scope_id: int = 0
 
     def define(self, name: str, value: RuntimeValue) -> None:
-        """Define or replace a binding in this environment."""
+        """Define or replace a binding in this environment.
+
+        Args:
+            name (str): Identifier or display name used by the operation.
+            value (RuntimeValue): Runtime, source, or static value to process.
+
+        Returns:
+            None: No value is returned.
+        """
         self.values[name] = value
 
     def assign(self, name: str, value: RuntimeValue) -> None:
-        """Assign a binding in its owning scope or define it locally."""
+        """Assign a binding in its owning scope or define it locally.
+
+        Args:
+            name (str): Identifier or display name used by the operation.
+            value (RuntimeValue): Runtime, source, or static value to process.
+
+        Returns:
+            None: No value is returned.
+        """
         if name in self.values:
             self.values[name] = value
         elif self.enclosing is not None and self.enclosing.contains(name):
@@ -31,20 +47,52 @@ class Environment:
             self.values[name] = value
 
     def set(self, name: str, value: RuntimeValue) -> None:
-        """Assign a value using normal lexical-scope resolution."""
+        """Assign a value using normal lexical-scope resolution.
+
+        Args:
+            name (str): Identifier or display name used by the operation.
+            value (RuntimeValue): Runtime, source, or static value to process.
+
+        Returns:
+            None: No value is returned.
+        """
         self.assign(name, value)
 
     def contains(self, name: str) -> bool:
-        """Return whether this environment or an ancestor contains a name."""
+        """Return whether this environment or an ancestor contains a name.
+
+        Args:
+            name (str): Identifier or display name used by the operation.
+
+        Returns:
+            bool: Whether the requested condition is satisfied.
+        """
         return name in self.values or (self.enclosing is not None and self.enclosing.contains(name))
 
     def owner(self, name: str) -> "Environment | None":
-        """Return the nearest environment that owns a name."""
+        """Return the nearest environment that owns a name.
+
+        Args:
+            name (str): Identifier or display name used by the operation.
+
+        Returns:
+            'Environment | None': The resulting runtime environment.
+        """
         if name in self.values: return self
         return self.enclosing.owner(name) if self.enclosing else None
 
     def get(self, name: str) -> RuntimeValue:
-        """Resolve a runtime value through the lexical environment chain."""
+        """Resolve a runtime value through the lexical environment chain.
+
+        Args:
+            name (str): Identifier or display name used by the operation.
+
+        Returns:
+            RuntimeValue: The resulting value.
+
+        Raises:
+            KeyError: When the operation cannot complete successfully.
+        """
         if name in self.values: return self.values[name]
         if self.enclosing is not None: return self.enclosing.get(name)
         raise KeyError(name)
@@ -72,8 +120,16 @@ class AlgoDeque:
 class _MaxItem:
     """Wrap a heap item with reversed comparison for maximum heaps."""
     value: RuntimeValue
+
     def __lt__(self, other: "_MaxItem") -> bool:
-        """Reverse heap ordering so larger values receive higher priority."""
+        """Reverse heap ordering so larger values receive higher priority.
+
+        Args:
+            other ('_MaxItem'): Value to compare against this object.
+
+        Returns:
+            bool: Whether the requested condition is satisfied.
+        """
         return self.value > other.value
 
 
@@ -84,21 +140,40 @@ class AlgoHeap:
     items: list[RuntimeValue] = field(default_factory=list)
 
     def push(self, value: RuntimeValue) -> None:
-        """Push a value onto the heap."""
+        """Push a value onto the heap.
+
+        Args:
+            value (RuntimeValue): Runtime, source, or static value to process.
+
+        Returns:
+            None: No value is returned.
+        """
         heapq.heappush(self.items, _MaxItem(value) if self.maximum else value)
 
     def pop(self) -> RuntimeValue:
-        """Remove and return the highest-priority value."""
+        """Remove and return the highest-priority value.
+
+        Returns:
+            RuntimeValue: The resulting value.
+        """
         value = heapq.heappop(self.items)
         return value.value if self.maximum else value
 
     def peek(self) -> RuntimeValue:
-        """Return the highest-priority value without removing it."""
+        """Return the highest-priority value without removing it.
+
+        Returns:
+            RuntimeValue: The resulting value.
+        """
         value = self.items[0]
         return value.value if self.maximum else value
 
     def values(self) -> list[RuntimeValue]:
-        """Return heap values in priority order for display and tracing."""
+        """Return heap values in priority order for display and tracing.
+
+        Returns:
+            list[RuntimeValue]: The resulting collection.
+        """
         raw = [value.value if self.maximum else value for value in self.items]
         return sorted(raw, reverse=self.maximum)
 
@@ -118,7 +193,14 @@ class AlgoFunction:
 
 
 def type_name(value: RuntimeValue) -> str:
-    """Return the AlgoLang type name for a runtime value."""
+    """Return the AlgoLang type name for a runtime value.
+
+    Args:
+        value (RuntimeValue): Runtime, source, or static value to process.
+
+    Returns:
+        str: The resulting text.
+    """
     if value is None: return "null"
     if isinstance(value, bool): return "bool"
     if isinstance(value, int): return "int"
@@ -136,7 +218,14 @@ def type_name(value: RuntimeValue) -> str:
 
 
 def display(value: RuntimeValue) -> str:
-    """Render a runtime value using AlgoLang's user-facing notation."""
+    """Render a runtime value using AlgoLang's user-facing notation.
+
+    Args:
+        value (RuntimeValue): Runtime, source, or static value to process.
+
+    Returns:
+        str: The resulting text.
+    """
     if value is None: return "null"
     if isinstance(value, bool): return str(value).lower()
     if isinstance(value, str): return value

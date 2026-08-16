@@ -13,13 +13,17 @@ from .pipeline import compile_source, parse_source, run_source, trace_source
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the command-line argument parser for the AlgoLang CLI."""
+    """Build the command-line argument parser for the AlgoLang CLI.
+
+    Returns:
+        argparse.ArgumentParser: The configured command-line parser.
+    """
     parser = argparse.ArgumentParser(prog="algo", description="Run and inspect AlgoLang programs")
     subparsers = parser.add_subparsers(dest="command", required=True)
     for command, help_text in (
-        ("run", "execute a program"),
-        ("ast", "print the parsed AST"),
-        ("check", "parse, analyze, and type-check a program"),
+            ("run", "execute a program"),
+            ("ast", "print the parsed AST"),
+            ("check", "parse, analyze, and type-check a program"),
     ):
         child = subparsers.add_parser(command, help=help_text)
         child.add_argument("file", type=Path)
@@ -33,7 +37,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the AlgoLang command-line interface and return its exit status."""
+    """Run the AlgoLang command-line interface and return its exit status.
+
+    Args:
+        argv (list[str] | None): Optional CLI arguments; ``None`` reads from the process command line.
+
+    Returns:
+        int: The resulting integer.
+    """
     args = build_parser().parse_args(argv)
     try:
         source = args.file.read_text(encoding="utf-8")

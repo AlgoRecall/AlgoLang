@@ -10,14 +10,27 @@ class AlgoError(Exception):
     category = "Error"
 
     def __init__(self, message: str, span: SourceSpan, source: str):
-        """Initialize a diagnostic with its message, source span, and source text."""
+        """Initialize a diagnostic with its message, source span, and source text.
+
+        Args:
+            message (str): Diagnostic message presented to the user.
+            span (SourceSpan): Source range associated with the value or diagnostic.
+            source (str): AlgoLang source text.
+
+        Returns:
+            None: No value is returned.
+        """
         super().__init__(message)
         self.message = message
         self.span = span
         self.source = source
 
     def render(self) -> str:
-        """Render the diagnostic with location, source line, and caret markers."""
+        """Render the diagnostic with location, source line, and caret markers.
+
+        Returns:
+            str: The resulting text.
+        """
         location = self.span.start
         lines = self.source.splitlines()
         line_text = lines[location.line - 1] if location.line <= len(lines) else ""

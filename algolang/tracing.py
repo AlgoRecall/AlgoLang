@@ -22,7 +22,14 @@ class RuntimeSnapshot:
 
 
 def snapshot(value: RuntimeValue) -> RuntimeSnapshot:
-    """Convert a runtime value into an immutable tracing snapshot."""
+    """Convert a runtime value into an immutable tracing snapshot.
+
+    Args:
+        value (RuntimeValue): Runtime, source, or static value to process.
+
+    Returns:
+        RuntimeSnapshot: An immutable snapshot of the runtime value.
+    """
     if value is None: return RuntimeSnapshot("null", None)
     if isinstance(value, bool): return RuntimeSnapshot("bool", value)
     if isinstance(value, int): return RuntimeSnapshot("int", value)
@@ -37,7 +44,8 @@ def snapshot(value: RuntimeValue) -> RuntimeSnapshot:
     if isinstance(value, AlgoStack): return RuntimeSnapshot("stack", tuple(snapshot(item) for item in value.items))
     if isinstance(value, AlgoQueue): return RuntimeSnapshot("queue", tuple(snapshot(item) for item in value.items))
     if isinstance(value, AlgoDeque): return RuntimeSnapshot("deque", tuple(snapshot(item) for item in value.items))
-    if isinstance(value, AlgoHeap): return RuntimeSnapshot("maxheap" if value.maximum else "minheap", tuple(snapshot(item) for item in value.values()))
+    if isinstance(value, AlgoHeap): return RuntimeSnapshot("maxheap" if value.maximum else "minheap",
+                                                           tuple(snapshot(item) for item in value.values()))
     if isinstance(value, AlgoFunction): return RuntimeSnapshot("function", value.declaration.name)
     if isinstance(value, NativeFunction): return RuntimeSnapshot("native_function", value.name)
     return RuntimeSnapshot(type(value).__name__, repr(value))
@@ -243,15 +251,31 @@ class HeapPopped(ExecutionEvent):
 
 class EventSink(Protocol):
     """Protocol for consumers of structured execution events."""
+
     def emit(self, event: ExecutionEvent) -> None:
-        """Receive an execution event."""
+        """Receive an execution event.
+
+        Args:
+            event (ExecutionEvent): Execution event to process.
+
+        Returns:
+            None: No value is returned.
+        """
         ...
 
 
 class NullEventSink:
     """Discard execution events when tracing is disabled."""
+
     def emit(self, event: ExecutionEvent) -> None:
-        """Discard an execution event."""
+        """Discard an execution event.
+
+        Args:
+            event (ExecutionEvent): Execution event to process.
+
+        Returns:
+            None: No value is returned.
+        """
         pass
 
 
@@ -261,9 +285,23 @@ class TraceCollector:
     events: list[ExecutionEvent] = field(default_factory=list)
 
     def emit(self, event: ExecutionEvent) -> None:
-        """Append an execution event to the trace."""
+        """Append an execution event to the trace.
+
+        Args:
+            event (ExecutionEvent): Execution event to process.
+
+        Returns:
+            None: No value is returned.
+        """
         self.events.append(event)
 
     def of_type(self, event_type: type[Any]) -> list[Any]:
-        """Return all collected events matching a concrete event type."""
+        """Return all collected events matching a concrete event type.
+
+        Args:
+            event_type (type[Any]): Concrete event class used to filter the trace.
+
+        Returns:
+            list[Any]: The resulting collection.
+        """
         return [event for event in self.events if isinstance(event, event_type)]

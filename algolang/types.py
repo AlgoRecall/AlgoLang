@@ -12,7 +12,11 @@ class Type:
     arguments: tuple["Type", ...] = ()
 
     def __str__(self) -> str:
-        """Return the canonical AlgoLang representation."""
+        """Return the canonical AlgoLang representation.
+
+        Returns:
+            str: The resulting text.
+        """
         if self.name == "array": return f"[{self.arguments[0]}]"
         if self.arguments: return f"{self.name}<{', '.join(map(str, self.arguments))}>"
         return self.name
@@ -25,7 +29,11 @@ class FunctionType:
     result: Type
 
     def __str__(self) -> str:
-        """Return the canonical AlgoLang representation."""
+        """Return the canonical AlgoLang representation.
+
+        Returns:
+            str: The resulting text.
+        """
         return f"fn({', '.join(map(str, self.parameters))}) -> {self.result}"
 
 
@@ -44,15 +52,37 @@ class SymbolTable:
     symbols: dict[str, Type | FunctionType] = field(default_factory=dict)
 
     def define(self, name: str, type_: Type | FunctionType) -> None:
-        """Define or replace a type binding in the current scope."""
+        """Define or replace a type binding in the current scope.
+
+        Args:
+            name (str): Identifier or display name used by the operation.
+            type_ (Type | FunctionType): Static type associated with the binding or value.
+
+        Returns:
+            None: No value is returned.
+        """
         self.symbols[name] = type_
 
     def resolve(self, name: str) -> Type | FunctionType | None:
-        """Resolve a type binding through the lexical scope chain."""
+        """Resolve a type binding through the lexical scope chain.
+
+        Args:
+            name (str): Identifier or display name used by the operation.
+
+        Returns:
+            Type | FunctionType | None: The resolved or inferred static type.
+        """
         if name in self.symbols: return self.symbols[name]
         return self.enclosing.resolve(name) if self.enclosing else None
 
     def resolve_owner(self, name: str) -> "SymbolTable | None":
-        """Return the innermost symbol table that owns a binding."""
+        """Return the innermost symbol table that owns a binding.
+
+        Args:
+            name (str): Identifier or display name used by the operation.
+
+        Returns:
+            'SymbolTable | None': The symbol table that owns the binding, or ``None`` if absent.
+        """
         if name in self.symbols: return self
         return self.enclosing.resolve_owner(name) if self.enclosing else None

@@ -20,7 +20,14 @@ class Node:
     span: SourceSpan
 
     def accept(self, visitor: AstVisitor[R]) -> R:
-        """Dispatch this node to the visitor method for its concrete type."""
+        """Dispatch this node to the visitor method for its concrete type.
+
+        Args:
+            visitor (AstVisitor[R]): Visitor implementing the operation for this node type.
+
+        Returns:
+            R: The value returned by the concrete visitor method.
+        """
         name = self.__class__.__name__
         snake = "".join(("_" + c.lower()) if c.isupper() else c for c in name).lstrip("_")
         return getattr(visitor, f"visit_{snake}")(self)
@@ -29,6 +36,8 @@ class Node:
 class Statement(Node):
     """Base class for executable statement nodes."""
     pass
+
+
 class Expression(Node):
     """Base class for value-producing expression nodes."""
     pass
@@ -69,7 +78,11 @@ class AssignmentStatement(Statement):
 
     @property
     def name(self) -> str:
-        """Return the assigned identifier name, or an empty string for a complex target."""
+        """Return the assigned identifier name, or an empty string for a complex target.
+
+        Returns:
+            str: The resulting text.
+        """
         return self.target.name if isinstance(self.target, Identifier) else ""
 
 
@@ -139,60 +152,86 @@ class FunctionDeclaration(Statement):
 class IntegerLiteral(Expression):
     """Represent an AlgoLang integer literal node."""
     value: int
+
+
 @dataclass(frozen=True, slots=True)
 class FloatLiteral(Expression):
     """Represent an AlgoLang float literal node."""
     value: float
+
+
 @dataclass(frozen=True, slots=True)
 class BooleanLiteral(Expression):
     """Represent an AlgoLang boolean literal node."""
     value: bool
+
+
 @dataclass(frozen=True, slots=True)
 class StringLiteral(Expression):
     """Represent an AlgoLang string literal node."""
     value: str
+
+
 @dataclass(frozen=True, slots=True)
 class NullLiteral(Expression):
     """Represent an AlgoLang null literal node."""
     pass
+
+
 @dataclass(frozen=True, slots=True)
 class Identifier(Expression):
     """Represent an AlgoLang identifier node."""
     name: str
+
+
 @dataclass(frozen=True, slots=True)
 class ArrayLiteral(Expression):
     """Represent an AlgoLang array literal node."""
     elements: tuple[Expression, ...]
+
+
 @dataclass(frozen=True, slots=True)
 class GroupingExpression(Expression):
     """Represent an AlgoLang grouping expression node."""
     expression: Expression
+
+
 @dataclass(frozen=True, slots=True)
 class UnaryExpression(Expression):
     """Represent an AlgoLang unary expression node."""
     operator: str
     operand: Expression
+
+
 @dataclass(frozen=True, slots=True)
 class BinaryExpression(Expression):
     """Represent an AlgoLang binary expression node."""
     left: Expression
     operator: str
     right: Expression
+
+
 @dataclass(frozen=True, slots=True)
 class CallExpression(Expression):
     """Represent an AlgoLang call expression node."""
     callee: Expression
     arguments: tuple[Expression, ...]
+
+
 @dataclass(frozen=True, slots=True)
 class IndexExpression(Expression):
     """Represent an AlgoLang index expression node."""
     collection: Expression
     index: Expression
+
+
 @dataclass(frozen=True, slots=True)
 class MemberExpression(Expression):
     """Represent an AlgoLang member expression node."""
     object: Expression
     name: str
+
+
 @dataclass(frozen=True, slots=True)
 class CollectionConstructor(Expression):
     """Represent an AlgoLang collection constructor node."""

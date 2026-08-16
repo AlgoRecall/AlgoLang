@@ -39,7 +39,11 @@ class ReplayState:
     active_loops: dict[int, int] = field(default_factory=dict)
 
     def copy(self) -> "ReplayState":
-        """Return an independent shallow copy of the reconstructed state."""
+        """Return an independent shallow copy of the reconstructed state.
+
+        Returns:
+            'ReplayState': A defensive copy of the reconstructed execution state.
+        """
         return ReplayState(
             dict(self.variables), dict(self.collections),
             list(self.active_calls), dict(self.active_loops),
@@ -56,23 +60,42 @@ class ExecutionReplay:
     """Deterministically replays a collected trace in either direction."""
 
     def __init__(self, trace: TraceCollector | Iterable[ExecutionEvent]):
-        """Initialize the execution replay."""
+        """Initialize the execution replay.
+
+        Args:
+            trace (TraceCollector | Iterable[ExecutionEvent]): Collected trace or execution-event source.
+
+        Returns:
+            None: No value is returned.
+        """
         self.events = tuple(trace.events if isinstance(trace, TraceCollector) else trace)
         self.position = -1
         self._state = ReplayState()
 
     @property
     def state(self) -> ReplayState:
-        """Return a defensive copy of the current replay state."""
+        """Return a defensive copy of the current replay state.
+
+        Returns:
+            ReplayState: A defensive copy of the reconstructed execution state.
+        """
         return self._state.copy()
 
     @property
     def current_event(self) -> ExecutionEvent | None:
-        """Return the current event."""
+        """Return the current event.
+
+        Returns:
+            ExecutionEvent | None: The resulting execution event, or ``None`` when unavailable.
+        """
         return None if self.position < 0 else self.events[self.position]
 
     def step_forward(self) -> ExecutionEvent | None:
-        """Move replay one step forward."""
+        """Move replay one step forward.
+
+        Returns:
+            ExecutionEvent | None: The resulting execution event, or ``None`` when unavailable.
+        """
         if self.position + 1 >= len(self.events): return None
         self.position += 1
         event = self.events[self.position]
@@ -80,13 +103,27 @@ class ExecutionReplay:
         return event
 
     def step_backward(self) -> ExecutionEvent | None:
-        """Move replay one step backward."""
+        """Move replay one step backward.
+
+        Returns:
+            ExecutionEvent | None: The resulting execution event, or ``None`` when unavailable.
+        """
         if self.position < 0: return None
         self.seek(self.position - 1)
         return self.current_event
 
     def seek(self, position: int) -> ExecutionEvent | None:
-        """Move replay to an absolute event position and return that event."""
+        """Move replay to an absolute event position and return that event.
+
+        Args:
+            position (int): Replay position, where -1 represents the initial state.
+
+        Returns:
+            ExecutionEvent | None: The resulting execution event, or ``None`` when unavailable.
+
+        Raises:
+            IndexError: When the operation cannot complete successfully.
+        """
         if position < -1 or position >= len(self.events):
             raise IndexError(f"trace position {position} is outside -1..{len(self.events) - 1}")
         if position < self.position:
@@ -96,12 +133,23 @@ class ExecutionReplay:
         return self.current_event
 
     def reset(self) -> None:
-        """Reset replay to the state before the first event."""
+        """Reset replay to the state before the first event.
+
+        Returns:
+            None: No value is returned.
+        """
         self.position = -1
         self._state = ReplayState()
 
     def visible_variables(self, call_id: int | None) -> dict[str, RuntimeSnapshot]:
-        """Return the newest visible value for each variable in a call context."""
+        """Return the newest visible value for each variable in a call context.
+
+        Args:
+            call_id (int | None): Identifier of the function call whose state is requested.
+
+        Returns:
+            dict[str, RuntimeSnapshot]: The resulting collection.
+        """
         visible: dict[str, VariableRecord] = {}
         for key, record in self._state.variables.items():
             if key.call_id not in (None, call_id): continue
@@ -115,7 +163,15 @@ class ExecutionReplay:
         }
 
     def _apply(self, event: ExecutionEvent, index: int) -> None:
-        """Apply one event to the reconstructed replay state."""
+        """Apply one event to the reconstructed replay state.
+
+        Args:
+            event (ExecutionEvent): Execution event to process.
+            index (int): Event or collection position to process.
+
+        Returns:
+            None: No value is returned.
+        """
         if isinstance(event, VariableDeclared):
             key = VariableKey(event.call_id, event.scope_id, event.name)
             self._state.variables[key] = VariableRecord(event.value, index, event.collection_id)
@@ -160,14 +216,25 @@ class CallNode:
     children: list["CallNode"] = field(default_factory=list)
 
     def label(self) -> str:
-        """Render the invocation, arguments, and optional result as one label."""
+        """Render the invocation, arguments, and optional result as one label.
+
+        Returns:
+            str: The resulting text.
+        """
         arguments = ", ".join(format_snapshot(value) for value in self.arguments)
         result = f" -> {format_snapshot(self.result)}" if self.returned and self.result else ""
         return f"{self.name}({arguments}){result}"
 
 
 def build_call_forest(events: Iterable[ExecutionEvent]) -> list[CallNode]:
-    """Build parent-child call trees from function trace events."""
+    """Build parent-child call trees from function trace events.
+
+    Args:
+        events (Iterable[ExecutionEvent]): Execution events to process.
+
+    Returns:
+        list[CallNode]: The resulting collection.
+    """
     nodes: dict[int, CallNode] = {}
     roots: list[CallNode] = []
     for event in events:
@@ -175,8 +242,10 @@ def build_call_forest(events: Iterable[ExecutionEvent]) -> list[CallNode]:
             node = CallNode(event.call_id, event.function_name, event.arguments)
             nodes[event.call_id] = node
             parent = nodes.get(event.parent_call_id) if event.parent_call_id is not None else None
-            if parent: parent.children.append(node)
-            else: roots.append(node)
+            if parent:
+                parent.children.append(node)
+            else:
+                roots.append(node)
         elif isinstance(event, FunctionReturned) and event.call_id in nodes:
             nodes[event.call_id].result = event.value
             nodes[event.call_id].returned = True
@@ -184,7 +253,14 @@ def build_call_forest(events: Iterable[ExecutionEvent]) -> list[CallNode]:
 
 
 def render_call_forest(roots: Iterable[CallNode]) -> str:
-    """Render call trees as a compact text forest."""
+    """Render call trees as a compact text forest.
+
+    Args:
+        roots (Iterable[CallNode]): Root call-tree nodes to render.
+
+    Returns:
+        str: The resulting text.
+    """
     lines: list[str] = []
     roots = list(roots)
     for root_index, root in enumerate(roots):
@@ -195,7 +271,16 @@ def render_call_forest(roots: Iterable[CallNode]) -> str:
 
 
 def _render_children(node: CallNode, prefix: str, lines: list[str]) -> None:
-    """Append a call node's descendants using tree-drawing prefixes."""
+    """Append a call node's descendants using tree-drawing prefixes.
+
+    Args:
+        node (CallNode): Abstract syntax tree node to process.
+        prefix (str): Tree-drawing prefix inherited from the parent node.
+        lines (list[str]): Output lines accumulated by the renderer.
+
+    Returns:
+        None: No value is returned.
+    """
     for index, child in enumerate(node.children):
         last = index == len(node.children) - 1
         lines.append(prefix + ("└── " if last else "├── ") + child.label())
@@ -203,12 +288,22 @@ def _render_children(node: CallNode, prefix: str, lines: list[str]) -> None:
 
 
 def render_dry_run(
-    trace: TraceCollector,
-    filename: str,
-    output: Iterable[str] = (),
-    watches: Iterable[str] = (),
+        trace: TraceCollector,
+        filename: str,
+        output: Iterable[str] = (),
+        watches: Iterable[str] = (),
 ) -> str:
-    """Render watched variables, events, and calls as a dry-run report."""
+    """Render watched variables, events, and calls as a dry-run report.
+
+    Args:
+        trace (TraceCollector): Collected trace or execution-event source.
+        filename (str): Filename used in source locations and diagnostics.
+        output (Iterable[str]): Program output lines to include in the report.
+        watches (Iterable[str]): Variable names selected for dry-run display.
+
+    Returns:
+        str: The resulting text.
+    """
     watch_names = _normalize_watches(watches)
     if not watch_names:
         watch_names = _discovered_names(trace.events)
@@ -248,7 +343,14 @@ def render_dry_run(
 
 
 def format_snapshot(value: RuntimeSnapshot | None) -> str:
-    """Render an immutable runtime snapshot for dry-run output."""
+    """Render an immutable runtime snapshot for dry-run output.
+
+    Args:
+        value (RuntimeSnapshot | None): Runtime, source, or static value to process.
+
+    Returns:
+        str: The resulting text.
+    """
     if value is None: return "·"
     if value.kind == "null": return "null"
     if value.kind == "bool": return "true" if value.value else "false"
@@ -264,7 +366,14 @@ def format_snapshot(value: RuntimeSnapshot | None) -> str:
 
 
 def _normalize_watches(watches: Iterable[str]) -> tuple[str, ...]:
-    """Normalize comma-separated watch arguments while preserving order."""
+    """Normalize comma-separated watch arguments while preserving order.
+
+    Args:
+        watches (Iterable[str]): Variable names selected for dry-run display.
+
+    Returns:
+        tuple[str, ...]: The resulting collection.
+    """
     names: list[str] = []
     for watch in watches:
         for name in watch.split(","):
@@ -274,7 +383,14 @@ def _normalize_watches(watches: Iterable[str]) -> tuple[str, ...]:
 
 
 def _discovered_names(events: Iterable[ExecutionEvent]) -> tuple[str, ...]:
-    """Return variable names discovered in declaration and change events."""
+    """Return variable names discovered in declaration and change events.
+
+    Args:
+        events (Iterable[ExecutionEvent]): Execution events to process.
+
+    Returns:
+        tuple[str, ...]: The resulting collection.
+    """
     names: list[str] = []
     for event in events:
         if isinstance(event, (VariableDeclared, VariableChanged)) and event.name not in names:
@@ -283,7 +399,15 @@ def _discovered_names(events: Iterable[ExecutionEvent]) -> tuple[str, ...]:
 
 
 def _display_event(event: ExecutionEvent, watches: tuple[str, ...]) -> bool:
-    """Return whether an event should produce a dry-run table row."""
+    """Return whether an event should produce a dry-run table row.
+
+    Args:
+        event (ExecutionEvent): Execution event to process.
+        watches (tuple[str, ...]): Variable names selected for dry-run display.
+
+    Returns:
+        bool: Whether the requested condition is satisfied.
+    """
     if isinstance(event, (VariableDeclared, VariableChanged)):
         return not watches or event.name in watches
     return isinstance(event, (
@@ -293,7 +417,14 @@ def _display_event(event: ExecutionEvent, watches: tuple[str, ...]) -> bool:
 
 
 def _describe_event(event: ExecutionEvent) -> str:
-    """Return a short user-facing description of an execution event."""
+    """Return a short user-facing description of an execution event.
+
+    Args:
+        event (ExecutionEvent): Execution event to process.
+
+    Returns:
+        str: The resulting text.
+    """
     if isinstance(event, VariableDeclared): return f"declare {event.name}"
     if isinstance(event, VariableChanged): return f"change {event.name}"
     if isinstance(event, ConditionEvaluated): return f"{event.context} condition = {'true' if event.value else 'false'}"
@@ -314,7 +445,15 @@ def _describe_event(event: ExecutionEvent) -> str:
 
 
 def _render_table(headers: tuple[str, ...], rows: list[tuple[str, ...]]) -> str:
-    """Render headers and rows as an aligned plain-text table."""
+    """Render headers and rows as an aligned plain-text table.
+
+    Args:
+        headers (tuple[str, ...]): Column headings for the rendered table.
+        rows (list[tuple[str, ...]]): Rows to render beneath the table headers.
+
+    Returns:
+        str: The resulting text.
+    """
     widths = [len(header) for header in headers]
     for row in rows:
         for index, cell in enumerate(row): widths[index] = max(widths[index], len(cell))

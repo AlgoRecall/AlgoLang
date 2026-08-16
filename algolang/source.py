@@ -22,5 +22,13 @@ class SourceSpan:
 
     @classmethod
     def covering(cls, first: "SourceSpan", last: "SourceSpan") -> "SourceSpan":
-        """Return a span extending from the first span through the last."""
+        """Return a span extending from the first span through the last.
+
+        Args:
+            first ('SourceSpan'): First source span in the covered range.
+            last ('SourceSpan'): Last source span in the covered range.
+
+        Returns:
+            'SourceSpan': The requested source range.
+        """
         return cls(first.start, last.end)
