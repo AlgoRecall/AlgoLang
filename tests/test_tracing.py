@@ -7,7 +7,7 @@ from algolang.tracing import (
     FunctionCalled, FunctionReturned, HeapPopped, HeapPushed, LoopExitReason,
     LoopFinished, LoopIteration, LoopStarted, MapUpdated, QueueDequeued,
     QueueEnqueued, RuntimeSnapshot, SetUpdated, StackPopped, StackPushed,
-    TraceCollector, VariableChanged, VariableDeclared,
+    VariableChanged, VariableDeclared,
 )
 
 
@@ -142,4 +142,3 @@ h.pop()
 
 
 if __name__ == "__main__": unittest.main()
-
