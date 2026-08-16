@@ -1,18 +1,23 @@
+"""Source-aware diagnostics for every AlgoLang pipeline stage."""
+
 from __future__ import annotations
 
 from .source import SourceSpan
 
 
 class AlgoError(Exception):
+    """Base exception for source-aware AlgoLang diagnostics."""
     category = "Error"
 
     def __init__(self, message: str, span: SourceSpan, source: str):
+        """Initialize a diagnostic with its message, source span, and source text."""
         super().__init__(message)
         self.message = message
         self.span = span
         self.source = source
 
     def render(self) -> str:
+        """Render the diagnostic with location, source line, and caret markers."""
         location = self.span.start
         lines = self.source.splitlines()
         line_text = lines[location.line - 1] if location.line <= len(lines) else ""
@@ -31,20 +36,25 @@ class AlgoError(Exception):
 
 
 class LexerError(AlgoError):
+    """Report a lexer failure with source context."""
     category = "Lexical error"
 
 
 class ParseError(AlgoError):
+    """Report a parse failure with source context."""
     category = "Parse error"
 
 
 class SemanticError(AlgoError):
+    """Report a semantic failure with source context."""
     category = "Semantic error"
 
 
 class TypeCheckError(AlgoError):
+    """Report a type check failure with source context."""
     category = "Type error"
 
 
 class RuntimeError(AlgoError):
+    """Report a runtime failure with source context."""
     category = "Runtime error"

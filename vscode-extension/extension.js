@@ -1,3 +1,5 @@
+/** AlgoLang VS Code extension activation, commands, diagnostics, and execution. */
+
 const path = require("path");
 const os = require("os");
 const { spawn } = require("child_process");
@@ -16,6 +18,7 @@ let outputChannel;
 /** @type {vscode.DiagnosticCollection} */
 let diagnostics;
 
+/** Activate AlgoLang commands, diagnostics, and completion support. */
 function activate(context) {
   outputChannel = vscode.window.createOutputChannel("AlgoLang", "algolang");
   diagnostics = vscode.languages.createDiagnosticCollection("algolang");
@@ -28,6 +31,7 @@ function activate(context) {
     vscode.commands.registerCommand(COMMANDS.ast, (resource) => execute("ast", resource)),
     vscode.commands.registerCommand(COMMANDS.dryrun, (resource) => executeDryRun(resource)),
     vscode.languages.registerCompletionItemProvider("algolang", {
+      /** Return completion items for the current AlgoLang document. */
       provideCompletionItems(document) {
         const configuration = vscode.workspace.getConfiguration("algolang", document.uri);
         if (!configuration.get("autocomplete.enabled", true)) return [];
@@ -38,8 +42,14 @@ function activate(context) {
   );
 }
 
+/** Release extension resources registered through the extension context. */
 function deactivate() {}
 
+/**
+ * Convert a language suggestion into a VS Code completion item.
+ * @param {{label: string, kind: string, detail?: string, insertText?: string}} suggestion
+ * @returns {vscode.CompletionItem}
+ */
 function toCompletionItem(suggestion) {
   const kind = vscode.CompletionItemKind[suggestion.kind] ?? vscode.CompletionItemKind.Text;
   const item = new vscode.CompletionItem(suggestion.label, kind);
@@ -50,6 +60,7 @@ function toCompletionItem(suggestion) {
   return item;
 }
 
+/** Prompt for watched variables and execute a dry run for the selected file. */
 async function executeDryRun(resource) {
   const watches = await vscode.window.showInputBox({
     title: "AlgoLang Dry Run",
@@ -61,6 +72,7 @@ async function executeDryRun(resource) {
   return execute("dryrun", resource, extraArguments);
 }
 
+/** Execute an AlgoLang CLI command and publish its output and diagnostics. */
 async function execute(command, resource, extraArguments = []) {
   const document = await resolveDocument(resource);
   if (!document) return;
@@ -109,6 +121,7 @@ async function execute(command, resource, extraArguments = []) {
   }
 }
 
+/** Resolve a command resource or active editor to an AlgoLang document. */
 async function resolveDocument(resource) {
   let document;
   if (resource instanceof vscode.Uri) {
@@ -127,6 +140,7 @@ async function resolveDocument(resource) {
   return document;
 }
 
+/** Resolve the configured interpreter working directory for a document. */
 function resolveRuntimeDirectory(uri, configuration) {
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
   const workspacePath = workspaceFolder?.uri.fsPath || path.dirname(uri.fsPath);
@@ -138,6 +152,7 @@ function resolveRuntimeDirectory(uri, configuration) {
   return path.isAbsolute(configured) ? configured : path.resolve(workspacePath, configured);
 }
 
+/** Launch the Python interpreter and collect its output and exit status. */
 function launch(pythonPath, arguments, cwd) {
   return new Promise((resolve) => {
     let stdout = "";
@@ -175,6 +190,7 @@ function launch(pythonPath, arguments, cwd) {
   });
 }
 
+/** Convert rendered AlgoLang errors into VS Code diagnostics. */
 function parseDiagnostics(stderr, document) {
   const pattern = /^(.+):(\d+):(\d+): (Lexical|Parse|Semantic|Type|Runtime) error: (.+)$/gm;
   const result = [];
@@ -195,11 +211,13 @@ function parseDiagnostics(stderr, document) {
   return result;
 }
 
+/** Reveal the output channel according to the configured visibility policy. */
 function revealOutput(configuration, failed) {
   const policy = configuration.get("revealOutput", "always");
   if (policy === "always" || (policy === "onError" && failed)) outputChannel.show(true);
 }
 
+/** Format a command for readable display without changing execution arguments. */
 function formatCommand(program, arguments) {
   return [program, ...arguments].map((part) => {
     if (!/[\s"']/u.test(part)) return part;

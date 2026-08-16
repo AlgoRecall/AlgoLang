@@ -1,3 +1,5 @@
+"""Tree-walking execution engine for validated AlgoLang programs."""
+
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
@@ -18,13 +20,21 @@ from .tracing import (
 )
 
 
-class _Break(Exception): pass
-class _Continue(Exception): pass
+class _Break(Exception):
+    """Unwind execution to the nearest loop for a break statement."""
+    pass
+class _Continue(Exception):
+    """Unwind the current iteration for a continue statement."""
+    pass
 class _Return(Exception):
-    def __init__(self, value: RuntimeValue): self.value = value
+    """Carry a return value while unwinding a function body."""
+    def __init__(self, value: RuntimeValue):
+        """Initialize function unwinding with the returned value."""
+        self.value = value
 
 
 class Interpreter:
+    """Execute a validated AlgoLang abstract syntax tree."""
     def __init__(
         self,
         source: str,
@@ -32,6 +42,7 @@ class Interpreter:
         environment: Environment | None = None,
         event_sink: EventSink | None = None,
     ):
+        """Initialize the interpreter."""
         self.source, self.output = source, output
         self.globals = environment or Environment()
         self.environment = self.globals
@@ -45,6 +56,7 @@ class Interpreter:
         self._collection_objects: dict[int, RuntimeValue] = {}
 
     def execute(self, program: ast.Program) -> Environment:
+        """Execute a program and return the resulting global environment."""
         for statement in program.statements:
             if isinstance(statement, ast.FunctionDeclaration):
                 self.globals.define(statement.name, AlgoFunction(statement, self.globals))
@@ -52,22 +64,28 @@ class Interpreter:
         return self.globals
 
     def visit_program(self, node: ast.Program) -> None:
+        """Execute the program node."""
         for statement in node.statements:
             if not isinstance(statement, ast.FunctionDeclaration): statement.accept(self)
 
     def visit_block_statement(self, node: ast.BlockStatement) -> None:
+        """Execute the block statement node."""
         self._execute_block(node, self._new_environment(self.environment))
 
     def _execute_block(self, node: ast.BlockStatement, environment: Environment) -> None:
+        """Execute statements in a supplied lexical environment."""
         previous, self.environment = self.environment, environment
         try:
             for statement in node.statements: statement.accept(self)
         finally:
             self.environment = previous
 
-    def visit_function_declaration(self, node: ast.FunctionDeclaration) -> None: pass
+    def visit_function_declaration(self, node: ast.FunctionDeclaration) -> None:
+        """Execute the function declaration node."""
+        pass
 
     def visit_assignment_statement(self, node: ast.AssignmentStatement) -> None:
+        """Execute the assignment statement node."""
         value = self._value(node.value)
         if isinstance(node.target, ast.Identifier):
             name = node.target.name
@@ -110,14 +128,20 @@ class Interpreter:
                     collection[index] = value
             except (IndexError, KeyError, TypeError) as error: self._error(node.target, f"indexed assignment failed: {error}")
 
-    def visit_expression_statement(self, node: ast.ExpressionStatement) -> None: self._value(node.expression)
-    def visit_print_statement(self, node: ast.PrintStatement) -> None: self.output(display(self._value(node.expression)))
+    def visit_expression_statement(self, node: ast.ExpressionStatement) -> None:
+        """Execute the expression statement node."""
+        self._value(node.expression)
+    def visit_print_statement(self, node: ast.PrintStatement) -> None:
+        """Execute the print statement node."""
+        self.output(display(self._value(node.expression)))
 
     def visit_if_statement(self, node: ast.IfStatement) -> None:
+        """Execute the if statement node."""
         if self._bool(node.condition, "if"): node.then_branch.accept(self)
         elif node.else_branch: node.else_branch.accept(self)
 
     def visit_while_statement(self, node: ast.WhileStatement) -> None:
+        """Execute the while statement node."""
         loop_id = self._allocate_loop_id()
         iterations = 0
         reason = LoopExitReason.COMPLETED
@@ -147,6 +171,7 @@ class Interpreter:
             ))
 
     def visit_for_statement(self, node: ast.ForStatement) -> None:
+        """Execute the for statement node."""
         values = self._iterable(self._value(node.iterable), node.iterable)
         loop_environment = self._new_environment(self.environment)
         loop_id = self._allocate_loop_id()
@@ -195,32 +220,55 @@ class Interpreter:
                 loop_id, LoopKind.FOR, iterations, reason,
             ))
 
-    def visit_break_statement(self, node: ast.BreakStatement) -> None: raise _Break()
-    def visit_continue_statement(self, node: ast.ContinueStatement) -> None: raise _Continue()
-    def visit_return_statement(self, node: ast.ReturnStatement) -> None: raise _Return(None if node.value is None else self._value(node.value))
+    def visit_break_statement(self, node: ast.BreakStatement) -> None:
+        """Execute the break statement node."""
+        raise _Break()
+    def visit_continue_statement(self, node: ast.ContinueStatement) -> None:
+        """Execute the continue statement node."""
+        raise _Continue()
+    def visit_return_statement(self, node: ast.ReturnStatement) -> None:
+        """Execute the return statement node."""
+        raise _Return(None if node.value is None else self._value(node.value))
 
-    def visit_integer_literal(self, node: ast.IntegerLiteral) -> int: return node.value
-    def visit_float_literal(self, node: ast.FloatLiteral) -> float: return node.value
-    def visit_boolean_literal(self, node: ast.BooleanLiteral) -> bool: return node.value
-    def visit_string_literal(self, node: ast.StringLiteral) -> str: return node.value
-    def visit_null_literal(self, node: ast.NullLiteral) -> None: return None
-    def visit_array_literal(self, node: ast.ArrayLiteral) -> list[RuntimeValue]: return [self._value(e) for e in node.elements]
+    def visit_integer_literal(self, node: ast.IntegerLiteral) -> int:
+        """Execute the integer literal node."""
+        return node.value
+    def visit_float_literal(self, node: ast.FloatLiteral) -> float:
+        """Execute the float literal node."""
+        return node.value
+    def visit_boolean_literal(self, node: ast.BooleanLiteral) -> bool:
+        """Execute the boolean literal node."""
+        return node.value
+    def visit_string_literal(self, node: ast.StringLiteral) -> str:
+        """Execute the string literal node."""
+        return node.value
+    def visit_null_literal(self, node: ast.NullLiteral) -> None:
+        """Execute the null literal node."""
+        return None
+    def visit_array_literal(self, node: ast.ArrayLiteral) -> list[RuntimeValue]:
+        """Execute the array literal node."""
+        return [self._value(e) for e in node.elements]
 
     def visit_identifier(self, node: ast.Identifier) -> RuntimeValue:
+        """Execute the identifier node."""
         if node.name == "len": return NativeFunction("len", self._collection_len)
         if node.name == "range": return NativeFunction("range", lambda *args: list(range(*args)))
         try: return self.environment.get(node.name)
         except KeyError: self._error(node, f"undefined variable '{node.name}'")
 
-    def visit_grouping_expression(self, node: ast.GroupingExpression) -> RuntimeValue: return self._value(node.expression)
+    def visit_grouping_expression(self, node: ast.GroupingExpression) -> RuntimeValue:
+        """Execute the grouping expression node."""
+        return self._value(node.expression)
 
     def visit_unary_expression(self, node: ast.UnaryExpression) -> RuntimeValue:
+        """Execute the unary expression node."""
         operand = self._value(node.operand)
         if node.operator == "not": return not operand
         if node.operator == "-": return -operand
         self._error(node, f"unknown unary operator '{node.operator}'")
 
     def visit_binary_expression(self, node: ast.BinaryExpression) -> RuntimeValue:
+        """Execute the binary expression node."""
         left = self._value(node.left)
         if node.operator == "and": return left and self._value(node.right)
         if node.operator == "or": return left or self._value(node.right)
@@ -244,6 +292,7 @@ class Interpreter:
         self._error(node, f"unknown binary operator '{node.operator}'")
 
     def visit_call_expression(self, node: ast.CallExpression) -> RuntimeValue:
+        """Execute the call expression node."""
         callee = self._evaluate(node.callee)
         arguments = [self._value(argument) for argument in node.arguments]
         if isinstance(callee, NativeFunction):
@@ -253,6 +302,7 @@ class Interpreter:
         self._error(node.callee, f"{type_name(callee)} value is not callable")
 
     def _call_function(self, function: AlgoFunction, arguments: list[RuntimeValue], node: ast.Node) -> RuntimeValue:
+        """Invoke a user-defined function with evaluated arguments."""
         declaration = function.declaration
         if len(arguments) != len(declaration.parameters): self._error(node, f"expected {len(declaration.parameters)} arguments, got {len(arguments)}")
         environment = self._new_environment(function.closure)
@@ -283,16 +333,19 @@ class Interpreter:
             self._call_stack.pop()
 
     def visit_index_expression(self, node: ast.IndexExpression) -> RuntimeValue:
+        """Execute the index expression node."""
         collection, index = self._value(node.collection), self._value(node.index)
         try: return collection[index]
         except (IndexError, KeyError, TypeError) as error: self._error(node, f"index operation failed: {error}")
 
     def visit_member_expression(self, node: ast.MemberExpression) -> NativeFunction:
+        """Execute the member expression node."""
         value = self._value(node.object)
         method = self._method(value, node.name, node)
         return NativeFunction(f"{type_name(value)}.{node.name}", method)
 
     def visit_collection_constructor(self, node: ast.CollectionConstructor) -> RuntimeValue:
+        """Execute the collection constructor node."""
         return {
             "map": dict, "set": set, "stack": AlgoStack, "queue": AlgoQueue,
             "deque": AlgoDeque, "minheap": lambda: AlgoHeap(False),
@@ -300,8 +353,11 @@ class Interpreter:
         }[node.type_node.name]()
 
     def _method(self, value: RuntimeValue, name: str, node: ast.Node) -> Callable[..., RuntimeValue]:
+        """Resolve a bound collection method and attach mutation tracing."""
         def empty_checked(action: Callable[[], RuntimeValue]) -> Callable[[], RuntimeValue]:
+            """Wrap an operation with an empty-collection runtime check."""
             def call():
+                """Invoke the guarded operation after validating collection state."""
                 try: return action()
                 except (IndexError, KeyError): self._error(node, f"cannot call '{name}' on an empty {type_name(value)}")
             return call
@@ -309,6 +365,7 @@ class Interpreter:
         if isinstance(value, list):
             if name == "push":
                 def array_push(item):
+                    """Append an item and emit the resulting array state."""
                     value.append(item)
                     self.event_sink.emit(ArrayUpdated(
                         node.span, self.environment.scope_id, self._call_id,
@@ -318,6 +375,7 @@ class Interpreter:
                 return array_push
             if name == "pop":
                 def array_pop():
+                    """Pop the final array item and emit the resulting state."""
                     if not value: self._error(node, "cannot call 'pop' on an empty array")
                     index = len(value) - 1
                     item = value.pop()
@@ -331,6 +389,7 @@ class Interpreter:
         if isinstance(value, set):
             if name == "add":
                 def set_add(item):
+                    """Add an item and emit whether the set changed."""
                     changed = item not in value
                     value.add(item)
                     self.event_sink.emit(SetUpdated(
@@ -341,6 +400,7 @@ class Interpreter:
                 return set_add
             if name == "remove":
                 def set_remove(item):
+                    """Remove an item and emit whether the set changed."""
                     changed = item in value
                     if changed: value.remove(item)
                     self.event_sink.emit(SetUpdated(
@@ -353,6 +413,7 @@ class Interpreter:
         if isinstance(value, AlgoStack):
             if name == "push":
                 def stack_push(item):
+                    """Push an item and emit the resulting stack state."""
                     value.items.append(item)
                     self.event_sink.emit(StackPushed(
                         node.span, self.environment.scope_id, self._call_id,
@@ -361,6 +422,7 @@ class Interpreter:
                 return stack_push
             if name == "pop":
                 def stack_pop():
+                    """Pop an item and emit the resulting stack state."""
                     if not value.items: self._error(node, "cannot call 'pop' on an empty stack")
                     item = value.items.pop()
                     self.event_sink.emit(StackPopped(
@@ -373,6 +435,7 @@ class Interpreter:
         if isinstance(value, AlgoQueue):
             if name == "enqueue":
                 def enqueue(item):
+                    """Enqueue an item and emit the resulting queue state."""
                     value.items.append(item)
                     self.event_sink.emit(QueueEnqueued(
                         node.span, self.environment.scope_id, self._call_id,
@@ -381,6 +444,7 @@ class Interpreter:
                 return enqueue
             if name == "dequeue":
                 def dequeue():
+                    """Dequeue an item and emit the resulting queue state."""
                     if not value.items: self._error(node, "cannot call 'dequeue' on an empty queue")
                     item = value.items.popleft()
                     self.event_sink.emit(QueueDequeued(
@@ -392,7 +456,9 @@ class Interpreter:
             if name == "front": return empty_checked(lambda: value.items[0])
         if isinstance(value, AlgoDeque):
             def deque_push(operation, action):
+                """Create a traced deque insertion operation."""
                 def call(item):
+                    """Insert an item at one end and emit the resulting deque state."""
                     action(item)
                     self.event_sink.emit(DequeUpdated(
                         node.span, self.environment.scope_id, self._call_id,
@@ -400,7 +466,9 @@ class Interpreter:
                     ))
                 return call
             def deque_pop(operation, action):
+                """Create a checked and traced deque removal operation."""
                 def call():
+                    """Remove an item from one end and emit the resulting deque state."""
                     if not value.items: self._error(node, f"cannot call '{name}' on an empty deque")
                     item = action()
                     self.event_sink.emit(DequeUpdated(
@@ -420,6 +488,7 @@ class Interpreter:
         if isinstance(value, AlgoHeap):
             if name == "push":
                 def heap_push(item):
+                    """Push an item and emit the resulting heap state."""
                     value.push(item)
                     self.event_sink.emit(HeapPushed(
                         node.span, self.environment.scope_id, self._call_id,
@@ -429,6 +498,7 @@ class Interpreter:
                 return heap_push
             if name == "pop":
                 def heap_pop():
+                    """Pop an item and emit the resulting heap state."""
                     if not value.items: self._error(node, "cannot call 'pop' on an empty heap")
                     item = value.pop()
                     self.event_sink.emit(HeapPopped(
@@ -442,11 +512,13 @@ class Interpreter:
         self._error(node, f"{type_name(value)} has no method '{name}'")
 
     def _collection_len(self, value: RuntimeValue) -> int:
+        """Return the number of values stored in a supported collection."""
         if isinstance(value, (AlgoStack, AlgoQueue, AlgoDeque)): return len(value.items)
         if isinstance(value, AlgoHeap): return len(value.items)
         return len(value)
 
     def _iterable(self, value: RuntimeValue, node: ast.Node) -> list[RuntimeValue]:
+        """Return a stable iterable view of a runtime collection."""
         if isinstance(value, AlgoHeap): return value.values()
         if isinstance(value, (AlgoStack, AlgoQueue, AlgoDeque)): return list(value.items)
         try: return list(value)
@@ -454,16 +526,19 @@ class Interpreter:
 
     @staticmethod
     def _membership_container(value: RuntimeValue):
+        """Return the concrete container used for a membership test."""
         if isinstance(value, AlgoHeap): return value.values()
         if isinstance(value, (AlgoStack, AlgoQueue, AlgoDeque)): return value.items
         return value
 
     @staticmethod
     def _integer_quotient(left: int, right: int) -> int:
+        """Apply truncating integer division and preserve division errors."""
         quotient = abs(left) // abs(right)
         return -quotient if (left < 0) != (right < 0) else quotient
 
     def _bool(self, expression: ast.Expression, context: str) -> bool:
+        """Require a boolean condition value and return it."""
         value = self._value(expression)
         if not isinstance(value, bool): self._error(expression, f"condition must be bool, got {type_name(value)}")
         self.event_sink.emit(ConditionEvaluated(
@@ -473,6 +548,7 @@ class Interpreter:
         return value
 
     def _evaluate(self, expression: ast.Expression) -> RuntimeValue:
+        """Evaluate an expression and emit its resulting snapshot."""
         value = expression.accept(self)
         self.event_sink.emit(ExpressionEvaluated(
             expression.span, self.environment.scope_id, self._call_id,
@@ -481,19 +557,23 @@ class Interpreter:
         return value
 
     def _value(self, expression: ast.Expression) -> RuntimeValue:
+        """Evaluate an expression without emitting an extra expression event."""
         return self._evaluate(expression)
 
     def _new_environment(self, enclosing: Environment) -> Environment:
+        """Create a uniquely identified lexical runtime environment."""
         environment = Environment(enclosing=enclosing, scope_id=self._next_scope_id)
         self._next_scope_id += 1
         return environment
 
     def _allocate_loop_id(self) -> int:
+        """Allocate the next loop id."""
         loop_id = self._next_loop_id
         self._next_loop_id += 1
         return loop_id
 
     def _collection_id(self, value: RuntimeValue) -> int:
+        """Return a stable trace identifier for a mutable collection."""
         identity = id(value)
         if identity not in self._collection_ids:
             self._collection_ids[identity] = self._next_collection_id
@@ -502,12 +582,16 @@ class Interpreter:
         return self._collection_ids[identity]
 
     def _collection_reference(self, value: RuntimeValue) -> int | None:
+        """Return collection identity and snapshot metadata for tracing."""
         if isinstance(value, (list, dict, set, AlgoStack, AlgoQueue, AlgoDeque, AlgoHeap)):
             return self._collection_id(value)
         return None
 
     @property
     def _call_id(self) -> int | None:
+        """Return the currently executing function call identifier."""
         return self._call_stack[-1] if self._call_stack else None
 
-    def _error(self, node: ast.Node, message: str): raise RuntimeError(message, node.span, self.source)
+    def _error(self, node: ast.Node, message: str):
+        """Raise a source-aware runtime error for an AST node."""
+        raise RuntimeError(message, node.span, self.source)

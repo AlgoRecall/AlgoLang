@@ -1,3 +1,5 @@
+/** Static and document-aware completion suggestions for AlgoLang source files. */
+
 const KEYWORD_COMPLETIONS = [
   { label: "and", kind: "Keyword", detail: "Boolean conjunction" },
   { label: "break", kind: "Keyword", detail: "Exit the nearest loop" },
@@ -43,8 +45,10 @@ const STATIC_COMPLETIONS = [
   ...BUILTIN_COMPLETIONS,
 ];
 
+/** Collect functions and variables declared in an AlgoLang document. */
 function collectDocumentIdentifiers(source) {
   const identifiers = new Map();
+  /** Add one unique identifier suggestion to the document-local result. */
   const add = (label, kind, detail) => {
     if (label && !identifiers.has(label)) identifiers.set(label, { label, kind, detail });
   };
@@ -72,6 +76,7 @@ function collectDocumentIdentifiers(source) {
   return [...identifiers.values()];
 }
 
+/** Return static language completions plus identifiers from the document. */
 function getCompletions(source) {
   return [...STATIC_COMPLETIONS, ...collectDocumentIdentifiers(source)];
 }

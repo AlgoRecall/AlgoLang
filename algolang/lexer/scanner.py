@@ -13,10 +13,12 @@ class Lexer:
     """Convert AlgoLang source text into a location-aware token stream."""
 
     def __init__(self, source: str, filename: str = "<source>"):
+        """Initialize the lexer."""
         self.cursor = SourceCursor(source, filename)
         self.tokens: list[Token] = []
 
     def scan_tokens(self) -> list[Token]:
+        """Scan the complete source and append a final end-of-file token."""
         while not self.cursor.at_end():
             self.cursor.begin_token()
             self._scan_token()
@@ -28,6 +30,7 @@ class Lexer:
         return self.tokens
 
     def _scan_token(self) -> None:
+        """Scan one token from the current cursor position."""
         char = self.cursor.advance()
 
         if char in SINGLE_CHARACTER_TOKENS:
@@ -67,12 +70,14 @@ class Lexer:
             self.cursor.error(f"unexpected character {char!r}")
 
     def _scan_bang(self) -> None:
+        """Scan the ``!=`` operator or reject unsupported bare ``!``."""
         if self.cursor.match("="):
             self._add(TokenKind.BANG_EQUAL)
             return
         self.cursor.error("expected '=' after '!'; use 'not' for negation")
 
     def _scan_slash_or_comment(self) -> None:
+        """Scan division or consume a line comment without emitting a token."""
         if not self.cursor.match("/"):
             self._add(TokenKind.SLASH)
             return
@@ -80,6 +85,7 @@ class Lexer:
             self.cursor.advance()
 
     def _add(self, kind: TokenKind, literal: object = None) -> None:
+        """Append a token using the cursor's current text and source span."""
         self.tokens.append(
             Token(kind, self.cursor.text(), literal, self.cursor.span())
         )

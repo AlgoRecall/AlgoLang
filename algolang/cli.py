@@ -1,3 +1,5 @@
+"""Command-line entry points for running and inspecting AlgoLang programs."""
+
 from __future__ import annotations
 
 import argparse
@@ -11,6 +13,7 @@ from .pipeline import compile_source, parse_source, run_source, trace_source
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the command-line argument parser for the AlgoLang CLI."""
     parser = argparse.ArgumentParser(prog="algo", description="Run and inspect AlgoLang programs")
     subparsers = parser.add_subparsers(dest="command", required=True)
     for command, help_text in (
@@ -30,6 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the AlgoLang command-line interface and return its exit status."""
     args = build_parser().parse_args(argv)
     try:
         source = args.file.read_text(encoding="utf-8")

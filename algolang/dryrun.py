@@ -1,3 +1,5 @@
+"""Execution replay and plain-text dry-run reporting."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -14,6 +16,7 @@ from .tracing import (
 
 @dataclass(frozen=True, slots=True)
 class VariableKey:
+    """Identify one variable binding within a call and lexical scope."""
     call_id: int | None
     scope_id: int
     name: str
@@ -21,6 +24,7 @@ class VariableKey:
 
 @dataclass(frozen=True, slots=True)
 class VariableRecord:
+    """Track a variable snapshot and the event that most recently changed it."""
     value: RuntimeSnapshot
     event_index: int
     collection_id: int | None
@@ -28,12 +32,14 @@ class VariableRecord:
 
 @dataclass(slots=True)
 class ReplayState:
+    """Hold reconstructed variables, collections, calls, and loops at one step."""
     variables: dict[VariableKey, VariableRecord] = field(default_factory=dict)
     collections: dict[int, RuntimeSnapshot] = field(default_factory=dict)
     active_calls: list[int] = field(default_factory=list)
     active_loops: dict[int, int] = field(default_factory=dict)
 
     def copy(self) -> "ReplayState":
+        """Return an independent shallow copy of the reconstructed state."""
         return ReplayState(
             dict(self.variables), dict(self.collections),
             list(self.active_calls), dict(self.active_loops),
@@ -50,19 +56,23 @@ class ExecutionReplay:
     """Deterministically replays a collected trace in either direction."""
 
     def __init__(self, trace: TraceCollector | Iterable[ExecutionEvent]):
+        """Initialize the execution replay."""
         self.events = tuple(trace.events if isinstance(trace, TraceCollector) else trace)
         self.position = -1
         self._state = ReplayState()
 
     @property
     def state(self) -> ReplayState:
+        """Return a defensive copy of the current replay state."""
         return self._state.copy()
 
     @property
     def current_event(self) -> ExecutionEvent | None:
+        """Return the current event."""
         return None if self.position < 0 else self.events[self.position]
 
     def step_forward(self) -> ExecutionEvent | None:
+        """Move replay one step forward."""
         if self.position + 1 >= len(self.events): return None
         self.position += 1
         event = self.events[self.position]
@@ -70,11 +80,13 @@ class ExecutionReplay:
         return event
 
     def step_backward(self) -> ExecutionEvent | None:
+        """Move replay one step backward."""
         if self.position < 0: return None
         self.seek(self.position - 1)
         return self.current_event
 
     def seek(self, position: int) -> ExecutionEvent | None:
+        """Move replay to an absolute event position and return that event."""
         if position < -1 or position >= len(self.events):
             raise IndexError(f"trace position {position} is outside -1..{len(self.events) - 1}")
         if position < self.position:
@@ -84,10 +96,12 @@ class ExecutionReplay:
         return self.current_event
 
     def reset(self) -> None:
+        """Reset replay to the state before the first event."""
         self.position = -1
         self._state = ReplayState()
 
     def visible_variables(self, call_id: int | None) -> dict[str, RuntimeSnapshot]:
+        """Return the newest visible value for each variable in a call context."""
         visible: dict[str, VariableRecord] = {}
         for key, record in self._state.variables.items():
             if key.call_id not in (None, call_id): continue
@@ -101,6 +115,7 @@ class ExecutionReplay:
         }
 
     def _apply(self, event: ExecutionEvent, index: int) -> None:
+        """Apply one event to the reconstructed replay state."""
         if isinstance(event, VariableDeclared):
             key = VariableKey(event.call_id, event.scope_id, event.name)
             self._state.variables[key] = VariableRecord(event.value, index, event.collection_id)
@@ -126,6 +141,7 @@ class ExecutionReplay:
 
 @dataclass(frozen=True, slots=True)
 class DryRunRow:
+    """Represent one displayed state transition in a dry-run table."""
     step: int
     line: int
     call: str
@@ -135,6 +151,7 @@ class DryRunRow:
 
 @dataclass(slots=True)
 class CallNode:
+    """Represent a function invocation in the reconstructed call tree."""
     call_id: int
     name: str
     arguments: tuple[RuntimeSnapshot, ...]
@@ -143,12 +160,14 @@ class CallNode:
     children: list["CallNode"] = field(default_factory=list)
 
     def label(self) -> str:
+        """Render the invocation, arguments, and optional result as one label."""
         arguments = ", ".join(format_snapshot(value) for value in self.arguments)
         result = f" -> {format_snapshot(self.result)}" if self.returned and self.result else ""
         return f"{self.name}({arguments}){result}"
 
 
 def build_call_forest(events: Iterable[ExecutionEvent]) -> list[CallNode]:
+    """Build parent-child call trees from function trace events."""
     nodes: dict[int, CallNode] = {}
     roots: list[CallNode] = []
     for event in events:
@@ -165,6 +184,7 @@ def build_call_forest(events: Iterable[ExecutionEvent]) -> list[CallNode]:
 
 
 def render_call_forest(roots: Iterable[CallNode]) -> str:
+    """Render call trees as a compact text forest."""
     lines: list[str] = []
     roots = list(roots)
     for root_index, root in enumerate(roots):
@@ -175,6 +195,7 @@ def render_call_forest(roots: Iterable[CallNode]) -> str:
 
 
 def _render_children(node: CallNode, prefix: str, lines: list[str]) -> None:
+    """Append a call node's descendants using tree-drawing prefixes."""
     for index, child in enumerate(node.children):
         last = index == len(node.children) - 1
         lines.append(prefix + ("└── " if last else "├── ") + child.label())
@@ -187,6 +208,7 @@ def render_dry_run(
     output: Iterable[str] = (),
     watches: Iterable[str] = (),
 ) -> str:
+    """Render watched variables, events, and calls as a dry-run report."""
     watch_names = _normalize_watches(watches)
     if not watch_names:
         watch_names = _discovered_names(trace.events)
@@ -226,6 +248,7 @@ def render_dry_run(
 
 
 def format_snapshot(value: RuntimeSnapshot | None) -> str:
+    """Render an immutable runtime snapshot for dry-run output."""
     if value is None: return "·"
     if value.kind == "null": return "null"
     if value.kind == "bool": return "true" if value.value else "false"
@@ -241,6 +264,7 @@ def format_snapshot(value: RuntimeSnapshot | None) -> str:
 
 
 def _normalize_watches(watches: Iterable[str]) -> tuple[str, ...]:
+    """Normalize comma-separated watch arguments while preserving order."""
     names: list[str] = []
     for watch in watches:
         for name in watch.split(","):
@@ -250,6 +274,7 @@ def _normalize_watches(watches: Iterable[str]) -> tuple[str, ...]:
 
 
 def _discovered_names(events: Iterable[ExecutionEvent]) -> tuple[str, ...]:
+    """Return variable names discovered in declaration and change events."""
     names: list[str] = []
     for event in events:
         if isinstance(event, (VariableDeclared, VariableChanged)) and event.name not in names:
@@ -258,6 +283,7 @@ def _discovered_names(events: Iterable[ExecutionEvent]) -> tuple[str, ...]:
 
 
 def _display_event(event: ExecutionEvent, watches: tuple[str, ...]) -> bool:
+    """Return whether an event should produce a dry-run table row."""
     if isinstance(event, (VariableDeclared, VariableChanged)):
         return not watches or event.name in watches
     return isinstance(event, (
@@ -267,6 +293,7 @@ def _display_event(event: ExecutionEvent, watches: tuple[str, ...]) -> bool:
 
 
 def _describe_event(event: ExecutionEvent) -> str:
+    """Return a short user-facing description of an execution event."""
     if isinstance(event, VariableDeclared): return f"declare {event.name}"
     if isinstance(event, VariableChanged): return f"change {event.name}"
     if isinstance(event, ConditionEvaluated): return f"{event.context} condition = {'true' if event.value else 'false'}"
@@ -287,6 +314,7 @@ def _describe_event(event: ExecutionEvent) -> str:
 
 
 def _render_table(headers: tuple[str, ...], rows: list[tuple[str, ...]]) -> str:
+    """Render headers and rows as an aligned plain-text table."""
     widths = [len(header) for header in headers]
     for row in rows:
         for index, cell in enumerate(row): widths[index] = max(widths[index], len(cell))
