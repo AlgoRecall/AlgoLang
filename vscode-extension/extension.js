@@ -1,3 +1,5 @@
+/** AlgoLang VS Code extension activation, commands, diagnostics, and execution. */
+
 const path = require("path");
 const os = require("os");
 const { spawn } = require("child_process");
@@ -16,6 +18,11 @@ let outputChannel;
 /** @type {vscode.DiagnosticCollection} */
 let diagnostics;
 
+/**
+ * Activate AlgoLang commands, diagnostics, and completion support.
+ * @param {vscode.ExtensionContext} context Extension context that owns registrations.
+ * @returns {void}
+ */
 function activate(context) {
   outputChannel = vscode.window.createOutputChannel("AlgoLang", "algolang");
   diagnostics = vscode.languages.createDiagnosticCollection("algolang");
@@ -28,6 +35,11 @@ function activate(context) {
     vscode.commands.registerCommand(COMMANDS.ast, (resource) => execute("ast", resource)),
     vscode.commands.registerCommand(COMMANDS.dryrun, (resource) => executeDryRun(resource)),
     vscode.languages.registerCompletionItemProvider("algolang", {
+      /**
+       * Return completion items for the current AlgoLang document.
+       * @param {vscode.TextDocument} document Active AlgoLang document.
+       * @returns {vscode.CompletionItem[]} Available completion items.
+       */
       provideCompletionItems(document) {
         const configuration = vscode.workspace.getConfiguration("algolang", document.uri);
         if (!configuration.get("autocomplete.enabled", true)) return [];
@@ -38,8 +50,17 @@ function activate(context) {
   );
 }
 
+/**
+ * Release extension resources registered through the extension context.
+ * @returns {void}
+ */
 function deactivate() {}
 
+/**
+ * Convert a language suggestion into a VS Code completion item.
+ * @param {{label: string, kind: string, detail?: string, insertText?: string}} suggestion
+ * @returns {vscode.CompletionItem}
+ */
 function toCompletionItem(suggestion) {
   const kind = vscode.CompletionItemKind[suggestion.kind] ?? vscode.CompletionItemKind.Text;
   const item = new vscode.CompletionItem(suggestion.label, kind);
@@ -50,6 +71,11 @@ function toCompletionItem(suggestion) {
   return item;
 }
 
+/**
+ * Prompt for watched variables and execute a dry run for the selected file.
+ * @param {vscode.Uri | undefined} resource Optional file selected by the command.
+ * @returns {Promise<void>} Completion of the dry-run command.
+ */
 async function executeDryRun(resource) {
   const watches = await vscode.window.showInputBox({
     title: "AlgoLang Dry Run",
@@ -61,6 +87,13 @@ async function executeDryRun(resource) {
   return execute("dryrun", resource, extraArguments);
 }
 
+/**
+ * Execute an AlgoLang CLI command and publish its output and diagnostics.
+ * @param {string} command AlgoLang CLI subcommand to run.
+ * @param {vscode.Uri | undefined} resource Optional file selected by the command.
+ * @param {string[]} extraArguments Additional CLI arguments.
+ * @returns {Promise<void>} Completion of command execution and UI updates.
+ */
 async function execute(command, resource, extraArguments = []) {
   const document = await resolveDocument(resource);
   if (!document) return;
@@ -109,6 +142,11 @@ async function execute(command, resource, extraArguments = []) {
   }
 }
 
+/**
+ * Resolve a command resource or active editor to an AlgoLang document.
+ * @param {vscode.Uri | undefined} resource Optional file selected by the command.
+ * @returns {Promise<vscode.TextDocument | undefined>} AlgoLang document when available.
+ */
 async function resolveDocument(resource) {
   let document;
   if (resource instanceof vscode.Uri) {
@@ -127,6 +165,12 @@ async function resolveDocument(resource) {
   return document;
 }
 
+/**
+ * Resolve the configured interpreter working directory for a document.
+ * @param {vscode.Uri} uri URI of the active AlgoLang document.
+ * @param {vscode.WorkspaceConfiguration} configuration AlgoLang workspace settings.
+ * @returns {string} Absolute runtime working directory.
+ */
 function resolveRuntimeDirectory(uri, configuration) {
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
   const workspacePath = workspaceFolder?.uri.fsPath || path.dirname(uri.fsPath);
@@ -138,6 +182,13 @@ function resolveRuntimeDirectory(uri, configuration) {
   return path.isAbsolute(configured) ? configured : path.resolve(workspacePath, configured);
 }
 
+/**
+ * Launch the Python interpreter and collect its output and exit status.
+ * @param {string} pythonPath Python executable to launch.
+ * @param {string[]} arguments Command-line arguments passed to Python.
+ * @param {string} cwd Runtime working directory.
+ * @returns {Promise<{code: number, stdout: string, stderr: string}>} Process result.
+ */
 function launch(pythonPath, arguments, cwd) {
   return new Promise((resolve) => {
     let stdout = "";
@@ -175,6 +226,12 @@ function launch(pythonPath, arguments, cwd) {
   });
 }
 
+/**
+ * Convert rendered AlgoLang errors into VS Code diagnostics.
+ * @param {string} stderr Error output produced by AlgoLang.
+ * @param {vscode.TextDocument} document Document associated with the errors.
+ * @returns {vscode.Diagnostic[]} Parsed editor diagnostics.
+ */
 function parseDiagnostics(stderr, document) {
   const pattern = /^(.+):(\d+):(\d+): (Lexical|Parse|Semantic|Type|Runtime) error: (.+)$/gm;
   const result = [];
@@ -195,11 +252,23 @@ function parseDiagnostics(stderr, document) {
   return result;
 }
 
+/**
+ * Reveal the output channel according to the configured visibility policy.
+ * @param {vscode.WorkspaceConfiguration} configuration AlgoLang workspace settings.
+ * @param {boolean} failed Whether command execution failed.
+ * @returns {void}
+ */
 function revealOutput(configuration, failed) {
   const policy = configuration.get("revealOutput", "always");
   if (policy === "always" || (policy === "onError" && failed)) outputChannel.show(true);
 }
 
+/**
+ * Format a command for readable display without changing execution arguments.
+ * @param {string} program Executable name or path.
+ * @param {string[]} arguments Command-line arguments to display.
+ * @returns {string} Shell-like display string with unsafe whitespace quoted.
+ */
 function formatCommand(program, arguments) {
   return [program, ...arguments].map((part) => {
     if (!/[\s"']/u.test(part)) return part;

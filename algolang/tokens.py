@@ -1,3 +1,5 @@
+"""Token categories and source-spanned token values."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,6 +10,7 @@ from .source import SourceSpan
 
 
 class TokenKind(Enum):
+    """Represent a token kind."""
     EOF = auto()
     NEWLINE = auto()
     IDENTIFIER = auto()
@@ -57,8 +60,8 @@ class TokenKind(Enum):
 
 @dataclass(frozen=True, slots=True)
 class Token:
+    """Represent a token."""
     kind: TokenKind
     lexeme: str
     literal: Any
     span: SourceSpan
-

@@ -23,11 +23,21 @@ class SourceCursor:
     start_column: int = field(init=False, default=1)
 
     def begin_token(self) -> None:
+        """Mark the current position as the start of the next token.
+
+        Returns:
+            None: No value is returned.
+        """
         self.start = self.current
         self.start_line = self.line
         self.start_column = self.column
 
     def advance(self) -> str:
+        """Consume one character and update offset, line, and column state.
+
+        Returns:
+            str: The resulting text.
+        """
         char = self.source[self.current]
         self.current += 1
         if char == "\n":
@@ -38,29 +48,67 @@ class SourceCursor:
         return char
 
     def match(self, expected: str) -> bool:
+        """Consume an expected character when it appears next.
+
+        Args:
+            expected (str): Expected character or value.
+
+        Returns:
+            bool: Whether the requested condition is satisfied.
+        """
         if self.at_end() or self.source[self.current] != expected:
             return False
         self.advance()
         return True
 
     def peek(self) -> str:
+        """Return the current character without consuming it.
+
+        Returns:
+            str: The resulting text.
+        """
         return "\0" if self.at_end() else self.source[self.current]
 
     def peek_next(self) -> str:
+        """Return the character after the current one without consuming it.
+
+        Returns:
+            str: The resulting text.
+        """
         if self.current + 1 >= len(self.source):
             return "\0"
         return self.source[self.current + 1]
 
     def at_end(self) -> bool:
+        """Return whether all source characters have been consumed.
+
+        Returns:
+            bool: Whether the requested condition is satisfied.
+        """
         return self.current >= len(self.source)
 
     def text(self) -> str:
+        """Return source text from the current token start to the cursor.
+
+        Returns:
+            str: The resulting text.
+        """
         return self.source[self.start:self.current]
 
     def location(self) -> SourceLocation:
+        """Return the current filename, offset, line, and column.
+
+        Returns:
+            SourceLocation: The current source location.
+        """
         return SourceLocation(self.filename, self.current, self.line, self.column)
 
     def span(self) -> SourceSpan:
+        """Return the source span from the token start to the cursor.
+
+        Returns:
+            SourceSpan: The requested source range.
+        """
         start = SourceLocation(
             self.filename,
             self.start,
@@ -70,4 +118,15 @@ class SourceCursor:
         return SourceSpan(start, self.location())
 
     def error(self, message: str) -> NoReturn:
+        """Raise a lexer error spanning the current token text.
+
+        Args:
+            message (str): Diagnostic message presented to the user.
+
+        Returns:
+            NoReturn: This function does not return normally.
+
+        Raises:
+            LexerError: When the operation cannot complete successfully.
+        """
         raise LexerError(message, self.span(), self.source)

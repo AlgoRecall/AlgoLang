@@ -1,3 +1,5 @@
+"""Public helpers that compose lexing, parsing, checking, and execution."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -13,11 +15,29 @@ from .type_checker import TypeChecker
 
 
 def parse_source(source: str, filename: str = "<source>") -> Program:
+    """Tokenize and parse source text into an abstract syntax tree.
+
+    Args:
+        source (str): AlgoLang source text.
+        filename (str): Filename used in source locations and diagnostics.
+
+    Returns:
+        Program: The parsed and optionally validated program tree.
+    """
     tokens = Lexer(source, filename).scan_tokens()
     return Parser(tokens, source).parse()
 
 
 def compile_source(source: str, filename: str = "<source>") -> Program:
+    """Parse and statically validate source text before execution.
+
+    Args:
+        source (str): AlgoLang source text.
+        filename (str): Filename used in source locations and diagnostics.
+
+    Returns:
+        Program: The parsed and optionally validated program tree.
+    """
     program = parse_source(source, filename)
     SemanticAnalyzer(source).analyze(program)
     TypeChecker(source).check(program)
@@ -25,20 +45,41 @@ def compile_source(source: str, filename: str = "<source>") -> Program:
 
 
 def run_source(
-    source: str,
-    filename: str = "<source>",
-    output: Callable[[str], None] = print,
-    event_sink: EventSink | None = None,
+        source: str,
+        filename: str = "<source>",
+        output: Callable[[str], None] = print,
+        event_sink: EventSink | None = None,
 ) -> Environment:
+    """Compile and execute source text, returning its runtime environment.
+
+    Args:
+        source (str): AlgoLang source text.
+        filename (str): Filename used in source locations and diagnostics.
+        output (Callable[[str], None]): Program output lines to include in the report.
+        event_sink (EventSink | None): Optional consumer for structured execution events.
+
+    Returns:
+        Environment: The resulting runtime environment.
+    """
     program = compile_source(source, filename)
     return Interpreter(source, output, event_sink=event_sink).execute(program)
 
 
 def trace_source(
-    source: str,
-    filename: str = "<source>",
-    output: Callable[[str], None] = print,
+        source: str,
+        filename: str = "<source>",
+        output: Callable[[str], None] = print,
 ) -> tuple[Environment, TraceCollector]:
+    """Execute source text while collecting structured trace events.
+
+    Args:
+        source (str): AlgoLang source text.
+        filename (str): Filename used in source locations and diagnostics.
+        output (Callable[[str], None]): Program output lines to include in the report.
+
+    Returns:
+        tuple[Environment, TraceCollector]: The resulting collection.
+    """
     collector = TraceCollector()
     environment = run_source(source, filename, output, collector)
     return environment, collector

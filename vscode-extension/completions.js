@@ -1,3 +1,5 @@
+/** Static and document-aware completion suggestions for AlgoLang source files. */
+
 const KEYWORD_COMPLETIONS = [
   { label: "and", kind: "Keyword", detail: "Boolean conjunction" },
   { label: "break", kind: "Keyword", detail: "Exit the nearest loop" },
@@ -43,8 +45,20 @@ const STATIC_COMPLETIONS = [
   ...BUILTIN_COMPLETIONS,
 ];
 
+/**
+ * Collect functions and variables declared in an AlgoLang document.
+ * @param {string} source Complete AlgoLang document text.
+ * @returns {Array<{label: string, kind: string, detail: string}>} Local suggestions.
+ */
 function collectDocumentIdentifiers(source) {
   const identifiers = new Map();
+  /**
+   * Add one unique identifier suggestion to the document-local result.
+   * @param {string} label Identifier shown to the user.
+   * @param {string} kind VS Code completion item kind name.
+   * @param {string} detail Explanation shown beside the suggestion.
+   * @returns {void}
+   */
   const add = (label, kind, detail) => {
     if (label && !identifiers.has(label)) identifiers.set(label, { label, kind, detail });
   };
@@ -72,6 +86,11 @@ function collectDocumentIdentifiers(source) {
   return [...identifiers.values()];
 }
 
+/**
+ * Return static language completions plus identifiers from the document.
+ * @param {string} source Complete AlgoLang document text.
+ * @returns {Array<{label: string, kind: string, detail: string, insertText?: string}>} Suggestions.
+ */
 function getCompletions(source) {
   return [...STATIC_COMPLETIONS, ...collectDocumentIdentifiers(source)];
 }
