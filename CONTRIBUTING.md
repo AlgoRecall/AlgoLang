@@ -169,11 +169,14 @@ title and its final commits must still follow the project standards.
 - Keep generated files and local virtual environments out of commits.
 - Avoid unrelated formatting or refactoring in a focused change.
 
-Run the full test suite before pushing:
+Run the same lint, unit-test, and coverage checks as CI before pushing:
 
 ```sh
-make test
+make quality
 ```
+
+The quality targets use `pipx run` so Ruff and Coverage remain isolated from
+AlgoLang's runtime environment.
 
 You can also exercise the parts relevant to your change:
 

@@ -193,6 +193,7 @@ for usage, settings, development, and packaging instructions.
 Common commands are:
 
 ```sh
+make quality           # Run lint, tests, and coverage checks
 make test              # Run the complete test suite
 make test-lexer        # Run focused lexer tests
 make check EXAMPLE=examples/dijkstra.algo
@@ -200,7 +201,11 @@ make dryrun EXAMPLE=examples/bfs.algo WATCH=node,pending,order
 ```
 
 Tests use Python's standard `unittest` framework and require no third-party
-runtime dependencies.
+runtime dependencies. The GitHub Actions pipeline runs the suite across the
+supported Python versions, checks Python code with Ruff, and enforces at least
+85% branch coverage. Run `make quality` before opening a pull/merge request to
+reproduce those checks locally; pipx provides the quality tools in isolated
+environments.
 
 ## Contributing
 
